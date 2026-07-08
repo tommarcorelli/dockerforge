@@ -452,6 +452,224 @@ export const STACKS = [
       },
     ],
   },
+  {
+    id: 'mattermost',
+    nom: 'Chat d\'équipe (Mattermost)',
+    description: 'Mattermost + PostgreSQL',
+    services: [
+      {
+        name: 'mattermost', image: 'mattermost/mattermost-team-edition:latest',
+        ports: [{ host: 8065, container: 8065 }],
+        volumes: ['./mattermost-data:/mattermost/data'],
+        env: [
+          { key: 'MM_SQLSETTINGS_DRIVERNAME', value: 'postgres' },
+          { key: 'MM_SQLSETTINGS_DATASOURCE', value: 'postgres://mattermost:change_moi@db:5432/mattermost?sslmode=disable' },
+        ],
+        dependsOn: ['db'],
+      },
+      {
+        name: 'db', image: 'postgres:16', ports: [{ host: 5432, container: 5432 }],
+        volumes: ['./data-postgres:/var/lib/postgresql/data'],
+        env: [
+          { key: 'POSTGRES_USER', value: 'mattermost' },
+          { key: 'POSTGRES_PASSWORD', value: 'change_moi' },
+          { key: 'POSTGRES_DB', value: 'mattermost' },
+        ],
+        dependsOn: [],
+      },
+    ],
+  },
+  {
+    id: 'wikijs',
+    nom: 'Wiki (Wiki.js)',
+    description: 'Wiki.js + PostgreSQL',
+    services: [
+      {
+        name: 'wiki', image: 'requarks/wiki:2', ports: [{ host: 3000, container: 3000 }],
+        volumes: [],
+        env: [
+          { key: 'DB_TYPE', value: 'postgres' },
+          { key: 'DB_HOST', value: 'db' },
+          { key: 'DB_PORT', value: '5432' },
+          { key: 'DB_USER', value: 'wikijs' },
+          { key: 'DB_PASS', value: 'change_moi' },
+          { key: 'DB_NAME', value: 'wiki' },
+        ],
+        dependsOn: ['db'],
+      },
+      {
+        name: 'db', image: 'postgres:16', ports: [{ host: 5432, container: 5432 }],
+        volumes: ['./data-postgres:/var/lib/postgresql/data'],
+        env: [
+          { key: 'POSTGRES_USER', value: 'wikijs' },
+          { key: 'POSTGRES_PASSWORD', value: 'change_moi' },
+          { key: 'POSTGRES_DB', value: 'wiki' },
+        ],
+        dependsOn: [],
+      },
+    ],
+  },
+  {
+    id: 'vaultwarden',
+    nom: 'Mots de passe (Vaultwarden)',
+    description: 'Gestionnaire de mots de passe compatible Bitwarden',
+    services: [
+      {
+        name: 'vaultwarden', image: 'vaultwarden/server:latest',
+        ports: [{ host: 8081, container: 80 }],
+        volumes: ['./vaultwarden-data:/data'],
+        env: [{ key: 'ADMIN_TOKEN', value: 'change_moi' }],
+        dependsOn: [],
+      },
+    ],
+  },
+  {
+    id: 'syncthing',
+    nom: 'Synchronisation de fichiers (Syncthing)',
+    description: 'Synchronise des dossiers entre plusieurs appareils, sans cloud tiers',
+    services: [
+      {
+        name: 'syncthing', image: 'syncthing/syncthing:latest',
+        ports: [
+          { host: 8384, container: 8384 },
+          { host: 22000, container: 22000 },
+        ],
+        volumes: ['./syncthing-config:/var/syncthing'],
+        env: [], dependsOn: [],
+      },
+    ],
+  },
+  {
+    id: 'meilisearch',
+    nom: 'Moteur de recherche (Meilisearch)',
+    description: 'Recherche rapide et pertinente à intégrer dans une appli',
+    services: [
+      {
+        name: 'meilisearch', image: 'getmeili/meilisearch:latest',
+        ports: [{ host: 7700, container: 7700 }],
+        volumes: ['./meili-data:/meili_data'],
+        env: [{ key: 'MEILI_MASTER_KEY', value: 'change_moi' }],
+        dependsOn: [],
+      },
+    ],
+  },
+  {
+    id: 'umami',
+    nom: 'Analytique respectueuse (Umami)',
+    description: 'Umami + PostgreSQL — alternative légère à Google Analytics',
+    services: [
+      {
+        name: 'umami', image: 'ghcr.io/umami-software/umami:postgresql-latest',
+        ports: [{ host: 3000, container: 3000 }],
+        volumes: [],
+        env: [
+          { key: 'DATABASE_URL', value: 'postgresql://umami:change_moi@db:5432/umami' },
+          { key: 'APP_SECRET', value: 'change_moi' },
+        ],
+        dependsOn: ['db'],
+      },
+      {
+        name: 'db', image: 'postgres:16', ports: [{ host: 5432, container: 5432 }],
+        volumes: ['./data-postgres:/var/lib/postgresql/data'],
+        env: [
+          { key: 'POSTGRES_USER', value: 'umami' },
+          { key: 'POSTGRES_PASSWORD', value: 'change_moi' },
+          { key: 'POSTGRES_DB', value: 'umami' },
+        ],
+        dependsOn: [],
+      },
+    ],
+  },
+  {
+    id: 'wireguard-easy',
+    nom: 'VPN (WireGuard Easy)',
+    description: 'Serveur WireGuard avec interface web de gestion des clients',
+    services: [
+      {
+        name: 'wg-easy', image: 'ghcr.io/wg-easy/wg-easy:latest',
+        ports: [
+          { host: 51820, container: 51820 },
+          { host: 51821, container: 51821 },
+        ],
+        volumes: ['./wg-easy-data:/etc/wireguard'],
+        env: [
+          { key: 'WG_HOST', value: 'change_moi_ip_ou_domaine' },
+          { key: 'PASSWORD', value: 'change_moi' },
+        ],
+        dependsOn: [],
+      },
+    ],
+  },
+  {
+    id: 'sonarqube',
+    nom: 'Qualité de code (SonarQube)',
+    description: 'SonarQube + PostgreSQL — analyse statique de code',
+    services: [
+      {
+        name: 'sonarqube', image: 'sonarqube:community', ports: [{ host: 9000, container: 9000 }],
+        volumes: ['./sonarqube-data:/opt/sonarqube/data', './sonarqube-extensions:/opt/sonarqube/extensions'],
+        env: [
+          { key: 'SONAR_JDBC_URL', value: 'jdbc:postgresql://db:5432/sonar' },
+          { key: 'SONAR_JDBC_USERNAME', value: 'sonar' },
+          { key: 'SONAR_JDBC_PASSWORD', value: 'change_moi' },
+        ],
+        dependsOn: ['db'],
+      },
+      {
+        name: 'db', image: 'postgres:16', ports: [{ host: 5432, container: 5432 }],
+        volumes: ['./data-postgres:/var/lib/postgresql/data'],
+        env: [
+          { key: 'POSTGRES_USER', value: 'sonar' },
+          { key: 'POSTGRES_PASSWORD', value: 'change_moi' },
+          { key: 'POSTGRES_DB', value: 'sonar' },
+        ],
+        dependsOn: [],
+      },
+    ],
+  },
+  {
+    id: 'pgadmin',
+    nom: 'Admin PostgreSQL (pgAdmin)',
+    description: 'pgAdmin + PostgreSQL — équivalent phpMyAdmin pour Postgres',
+    services: [
+      {
+        name: 'pgadmin', image: 'dpage/pgadmin4:latest', ports: [{ host: 5050, container: 80 }],
+        volumes: [],
+        env: [
+          { key: 'PGADMIN_DEFAULT_EMAIL', value: 'admin@example.com' },
+          { key: 'PGADMIN_DEFAULT_PASSWORD', value: 'change_moi' },
+        ],
+        dependsOn: ['db'],
+      },
+      {
+        name: 'db', image: 'postgres:16', ports: [{ host: 5432, container: 5432 }],
+        volumes: ['./data-postgres:/var/lib/postgresql/data'],
+        env: [
+          { key: 'POSTGRES_USER', value: 'postgres' },
+          { key: 'POSTGRES_PASSWORD', value: 'change_moi' },
+          { key: 'POSTGRES_DB', value: 'app' },
+        ],
+        dependsOn: [],
+      },
+    ],
+  },
+  {
+    id: 'linkding',
+    nom: 'Gestionnaire de favoris (Linkding)',
+    description: 'Sauvegarde et organise tes liens/favoris, façon Pocket',
+    services: [
+      {
+        name: 'linkding', image: 'sissbruecker/linkding:latest',
+        ports: [{ host: 9090, container: 9090 }],
+        volumes: ['./linkding-data:/etc/linkding/data'],
+        env: [
+          { key: 'LD_SUPERUSER_NAME', value: 'admin' },
+          { key: 'LD_SUPERUSER_PASSWORD', value: 'change_moi' },
+        ],
+        dependsOn: [],
+      },
+    ],
+  },
 ]
 
 // Construit des objets service complets (avec id) à partir d'une stack,
