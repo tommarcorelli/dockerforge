@@ -42,6 +42,10 @@ function ServiceForm({ onAdd, servicesExistants, servicesActuels, networksDispon
   const [ouvertConfig, setOuvertConfig] = useState(false)
   const [ouvertAvance, setOuvertAvance] = useState(false)
   const [portAjuste, setPortAjuste] = useState(null)
+  // true tant que le port affiché vient du catalogue (ou est vide) : dans ce cas,
+  // cliquer une autre image du catalogue peut encore le mettre à jour. Passe à
+  // false dès que la personne modifie le port à la main, pour ne plus l'écraser.
+  const [portsAuto, setPortsAuto] = useState(true)
 
   function majChamp(champ, valeur) {
     setService((s) => ({ ...s, [champ]: valeur }))
@@ -59,7 +63,7 @@ function ServiceForm({ onAdd, servicesExistants, servicesActuels, networksDispon
       image: item.image,
       name: s.name.trim() === '' ? item.suggestionNom : s.name,
       ports:
-        item.portDefaut && s.ports.length === 1 && !s.ports[0].host && !s.ports[0].container
+        item.portDefaut && portsAuto
           ? [{ host: String(portLibre), container: String(item.portDefaut) }]
           : s.ports,
       env:
@@ -78,6 +82,7 @@ function ServiceForm({ onAdd, servicesExistants, servicesActuels, networksDispon
   }
 
   function majPort(index, cle, valeur) {
+    if (cle === 'host') setPortsAuto(false)
     const ports = [...service.ports]
     ports[index] = { ...ports[index], [cle]: valeur }
     setService((s) => ({ ...s, ports }))
@@ -159,6 +164,7 @@ function ServiceForm({ onAdd, servicesExistants, servicesActuels, networksDispon
     if (!service.name.trim() || !service.image.trim()) return
     onAdd(service)
     setService(serviceVide())
+    setPortsAuto(true)
   }
 
   const volumesRemplis = service.volumes.filter((v) => v.trim() !== '').length

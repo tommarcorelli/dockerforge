@@ -103,12 +103,15 @@ dockerforge/
   répartition des services par réseau.
 
 **Stacks & import**
-- **33 stacks prêtes à l'emploi**, en un clic, réparties par usage :
+- **42 stacks prêtes à l'emploi**, en un clic, réparties par usage :
   - *Web/CMS* : LAMP, LEMP, WordPress, Ghost, Strapi, Directus.
-  - *Données/dev* : Node+Mongo, Metabase, Gitea, SonarQube, pgAdmin.
-  - *Monitoring/logs* : Monitoring léger, Observabilité complète, ELK, Uptime Kuma, Matomo, Umami.
-  - *Auto-hébergement perso* : Nextcloud, Pi-hole, Home Assistant, Jellyfin, Syncthing, Vaultwarden, Linkding.
-  - *Communication/outils* : n8n, Mattermost, Wiki.js, Mailpit, Meilisearch, WireGuard Easy, Keycloak, Portainer, Redis+RedisInsight.
+  - *Données/dev* : Node+Mongo, Metabase, Gitea, SonarQube, pgAdmin, Redmine.
+  - *Monitoring/logs* : Monitoring léger, Observabilité complète, ELK, Uptime Kuma, Matomo, Umami, changedetection.io.
+  - *Auto-hébergement perso* : Nextcloud, Pi-hole, Home Assistant, Jellyfin,
+    Syncthing, Vaultwarden, Linkding, Firefly III, Mealie, Grocy, Homepage.
+  - *Communication/outils* : n8n, Mattermost, Wiki.js, BookStack, Mailpit,
+    Meilisearch, WireGuard Easy, Keycloak, Portainer, Redis+RedisInsight,
+    Miniflux, Shlink.
 - Import d'un `docker-compose.yml` existant pour l'éditer visuellement.
 
 **Sécurité**
@@ -140,6 +143,13 @@ dockerforge/
 
 ## Correctifs récents
 
+- **Port toujours identique en cliquant plusieurs images du catalogue** :
+  corrigé. Cliquer sur une image du catalogue ne mettait à jour le port que
+  si les champs port étaient encore vides — en cliquant sur une deuxième
+  image pour comparer/changer d'avis, le port restait bloqué sur celui de la
+  première. Le port se met maintenant à jour à chaque clic sur le catalogue,
+  tant que tu ne l'as pas modifié toi-même à la main (dans ce cas, ton choix
+  manuel est respecté et n'est plus écrasé).
 - **Débordement horizontal / hero décalé à gauche** : corrigé. Les colonnes
   de la grille (`.colonne`) n'avaient pas `min-width: 0`, ce qui est un piège
   classique de CSS Grid — le contenu large de l'aperçu YAML (lignes non

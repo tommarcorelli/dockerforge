@@ -670,6 +670,215 @@ export const STACKS = [
       },
     ],
   },
+  {
+    id: 'firefly-iii',
+    nom: 'Finances perso (Firefly III)',
+    description: 'Firefly III + MariaDB — suivi de budget et de dépenses',
+    services: [
+      {
+        name: 'firefly', image: 'fireflyiii/core:latest', ports: [{ host: 8082, container: 8080 }],
+        volumes: ['./firefly-upload:/var/www/html/storage/upload'],
+        env: [
+          { key: 'APP_KEY', value: 'change_moi_cle_32_caracteres' },
+          { key: 'DB_CONNECTION', value: 'mysql' },
+          { key: 'DB_HOST', value: 'db' },
+          { key: 'DB_DATABASE', value: 'firefly' },
+          { key: 'DB_USERNAME', value: 'firefly' },
+          { key: 'DB_PASSWORD', value: 'change_moi' },
+        ],
+        dependsOn: ['db'],
+      },
+      {
+        name: 'db', image: 'mariadb:latest', ports: [{ host: 3306, container: 3306 }],
+        volumes: ['./data-mariadb:/var/lib/mysql'],
+        env: [
+          { key: 'MARIADB_DATABASE', value: 'firefly' },
+          { key: 'MARIADB_USER', value: 'firefly' },
+          { key: 'MARIADB_PASSWORD', value: 'change_moi' },
+          { key: 'MARIADB_ROOT_PASSWORD', value: 'change_moi_root' },
+        ],
+        dependsOn: [],
+      },
+    ],
+  },
+  {
+    id: 'mealie',
+    nom: 'Recettes de cuisine (Mealie)',
+    description: 'Organise tes recettes et génère des listes de courses',
+    services: [
+      {
+        name: 'mealie', image: 'ghcr.io/mealie-recipes/mealie:latest',
+        ports: [{ host: 9925, container: 9000 }],
+        volumes: ['./mealie-data:/app/data'],
+        env: [{ key: 'TZ', value: 'Europe/Paris' }],
+        dependsOn: [],
+      },
+    ],
+  },
+  {
+    id: 'bookstack',
+    nom: 'Documentation (BookStack)',
+    description: 'BookStack + MariaDB — wiki structuré en livres/chapitres/pages',
+    services: [
+      {
+        name: 'bookstack', image: 'linuxserver/bookstack:latest', ports: [{ host: 6875, container: 80 }],
+        volumes: ['./bookstack-config:/config'],
+        env: [
+          { key: 'PUID', value: '1000' },
+          { key: 'PGID', value: '1000' },
+          { key: 'APP_URL', value: 'http://localhost:6875' },
+          { key: 'DB_HOST', value: 'db' },
+          { key: 'DB_DATABASE', value: 'bookstackapp' },
+          { key: 'DB_USERNAME', value: 'bookstack' },
+          { key: 'DB_PASSWORD', value: 'change_moi' },
+        ],
+        dependsOn: ['db'],
+      },
+      {
+        name: 'db', image: 'mariadb:latest', ports: [{ host: 3306, container: 3306 }],
+        volumes: ['./data-mariadb:/var/lib/mysql'],
+        env: [
+          { key: 'MARIADB_DATABASE', value: 'bookstackapp' },
+          { key: 'MARIADB_USER', value: 'bookstack' },
+          { key: 'MARIADB_PASSWORD', value: 'change_moi' },
+          { key: 'MARIADB_ROOT_PASSWORD', value: 'change_moi_root' },
+        ],
+        dependsOn: [],
+      },
+    ],
+  },
+  {
+    id: 'redmine',
+    nom: 'Suivi de projets (Redmine)',
+    description: 'Redmine + PostgreSQL — gestion de tâches et de bugs',
+    services: [
+      {
+        name: 'redmine', image: 'redmine:latest', ports: [{ host: 3000, container: 3000 }],
+        volumes: ['./redmine-files:/usr/src/redmine/files'],
+        env: [
+          { key: 'REDMINE_DB_POSTGRES', value: 'db' },
+          { key: 'REDMINE_DB_DATABASE', value: 'redmine' },
+          { key: 'REDMINE_DB_USERNAME', value: 'redmine' },
+          { key: 'REDMINE_DB_PASSWORD', value: 'change_moi' },
+        ],
+        dependsOn: ['db'],
+      },
+      {
+        name: 'db', image: 'postgres:16', ports: [{ host: 5432, container: 5432 }],
+        volumes: ['./data-postgres:/var/lib/postgresql/data'],
+        env: [
+          { key: 'POSTGRES_USER', value: 'redmine' },
+          { key: 'POSTGRES_PASSWORD', value: 'change_moi' },
+          { key: 'POSTGRES_DB', value: 'redmine' },
+        ],
+        dependsOn: [],
+      },
+    ],
+  },
+  {
+    id: 'miniflux',
+    nom: 'Lecteur RSS (Miniflux)',
+    description: 'Miniflux + PostgreSQL — flux RSS/Atom, sobre et rapide',
+    services: [
+      {
+        name: 'miniflux', image: 'miniflux/miniflux:latest', ports: [{ host: 8080, container: 8080 }],
+        volumes: [],
+        env: [
+          { key: 'DATABASE_URL', value: 'postgres://miniflux:change_moi@db/miniflux?sslmode=disable' },
+          { key: 'RUN_MIGRATIONS', value: '1' },
+          { key: 'CREATE_ADMIN', value: '1' },
+          { key: 'ADMIN_USERNAME', value: 'admin' },
+          { key: 'ADMIN_PASSWORD', value: 'change_moi' },
+        ],
+        dependsOn: ['db'],
+      },
+      {
+        name: 'db', image: 'postgres:16', ports: [{ host: 5432, container: 5432 }],
+        volumes: ['./data-postgres:/var/lib/postgresql/data'],
+        env: [
+          { key: 'POSTGRES_USER', value: 'miniflux' },
+          { key: 'POSTGRES_PASSWORD', value: 'change_moi' },
+          { key: 'POSTGRES_DB', value: 'miniflux' },
+        ],
+        dependsOn: [],
+      },
+    ],
+  },
+  {
+    id: 'shlink',
+    nom: 'Raccourcisseur d\'URL (Shlink)',
+    description: 'Shlink + MariaDB — tes propres liens courts, comme bit.ly',
+    services: [
+      {
+        name: 'shlink', image: 'shlinkio/shlink:latest', ports: [{ host: 8083, container: 8080 }],
+        volumes: [],
+        env: [
+          { key: 'DEFAULT_DOMAIN', value: 'localhost' },
+          { key: 'IS_HTTPS_ENABLED', value: 'false' },
+          { key: 'DB_DRIVER', value: 'maria' },
+          { key: 'DB_NAME', value: 'shlink' },
+          { key: 'DB_USER', value: 'shlink' },
+          { key: 'DB_PASSWORD', value: 'change_moi' },
+          { key: 'DB_HOST', value: 'db' },
+        ],
+        dependsOn: ['db'],
+      },
+      {
+        name: 'db', image: 'mariadb:latest', ports: [{ host: 3306, container: 3306 }],
+        volumes: ['./data-mariadb:/var/lib/mysql'],
+        env: [
+          { key: 'MARIADB_DATABASE', value: 'shlink' },
+          { key: 'MARIADB_USER', value: 'shlink' },
+          { key: 'MARIADB_PASSWORD', value: 'change_moi' },
+          { key: 'MARIADB_ROOT_PASSWORD', value: 'change_moi_root' },
+        ],
+        dependsOn: [],
+      },
+    ],
+  },
+  {
+    id: 'grocy',
+    nom: 'Courses & inventaire (Grocy)',
+    description: 'Gère tes stocks de nourriture, listes de courses, chores',
+    services: [
+      {
+        name: 'grocy', image: 'lscr.io/linuxserver/grocy:latest', ports: [{ host: 9283, container: 80 }],
+        volumes: ['./grocy-config:/config'],
+        env: [
+          { key: 'PUID', value: '1000' },
+          { key: 'PGID', value: '1000' },
+          { key: 'TZ', value: 'Europe/Paris' },
+        ],
+        dependsOn: [],
+      },
+    ],
+  },
+  {
+    id: 'homepage',
+    nom: 'Tableau de bord (Homepage)',
+    description: 'Page d\'accueil centralisant tous tes services auto-hébergés',
+    services: [
+      {
+        name: 'homepage', image: 'ghcr.io/gethomepage/homepage:latest',
+        ports: [{ host: 3000, container: 3000 }],
+        volumes: ['./homepage-config:/app/config'],
+        env: [], dependsOn: [],
+      },
+    ],
+  },
+  {
+    id: 'changedetection',
+    nom: 'Surveillance de pages web (changedetection.io)',
+    description: 'Alerte quand une page web surveillée change',
+    services: [
+      {
+        name: 'changedetection', image: 'dgtlmoon/changedetection.io:latest',
+        ports: [{ host: 5000, container: 5000 }],
+        volumes: ['./changedetection-data:/datastore'],
+        env: [], dependsOn: [],
+      },
+    ],
+  },
 ]
 
 // Construit des objets service complets (avec id) à partir d'une stack,
