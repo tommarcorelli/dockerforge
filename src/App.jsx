@@ -25,39 +25,11 @@ function App() {
   const [guideInstallationOuvert, setGuideInstallationOuvert] = useState(false)
   const [ongletActif, setOngletActif] = useState('services')
   const [theme, setTheme] = useState(() => localStorage.getItem('dockerforge_theme') || 'clair')
-  const [promptInstall, setPromptInstall] = useState(null)
-  const [toastInstallAffiche, setToastInstallAffiche] = useState(false)
 
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme)
     localStorage.setItem('dockerforge_theme', theme)
   }, [theme])
-
-  // Écoute l'événement PWA installable pour afficher un toast d'invitation
-  useEffect(() => {
-    function surBeforeInstall(e) {
-      e.preventDefault()
-      setPromptInstall(e)
-      if (!localStorage.getItem('dockerforge_pwa_dismiss')) {
-        setToastInstallAffiche(true)
-      }
-    }
-    window.addEventListener('beforeinstallprompt', surBeforeInstall)
-    return () => window.removeEventListener('beforeinstallprompt', surBeforeInstall)
-  }, [])
-
-  async function installerPWA() {
-    if (!promptInstall) return
-    promptInstall.prompt()
-    await promptInstall.userChoice
-    setPromptInstall(null)
-    setToastInstallAffiche(false)
-  }
-
-  function refuserInstall() {
-    localStorage.setItem('dockerforge_pwa_dismiss', '1')
-    setToastInstallAffiche(false)
-  }
 
   function basculerTheme() {
     setTheme((t) => (t === 'sombre' ? 'clair' : 'sombre'))
@@ -251,14 +223,14 @@ function App() {
       <header className="hero">
         <div className="hero-fond" aria-hidden="true" />
         <div className="hero-contenu">
-          <span className="hero-eyebrow">Générateur de docker-compose · 100% local</span>
+          <span className="hero-eyebrow">GÉNÉRATEUR DE DOCKER-COMPOSE</span>
           <h1 className="hero-titre">
             <Icon icon={siDocker} size={52} couleur="#2496ED" />
             DOCKER<span>FORGE</span>
           </h1>
           <p className="hero-sous-titre">
             Ajoute tes services, ajuste la configuration, exporte un
-            <code> docker-compose.yml</code> propre et validé — le tout dans ton navigateur, aucune donnée n'est envoyée nulle part.
+            <code> docker-compose.yml</code> propre et validé.
           </p>
           <div className="hero-nom-projet">
             <label htmlFor="nom-projet">Nom du projet (compose)</label>
@@ -436,20 +408,6 @@ function App() {
 
       <GuideUtilisationModal ouvert={guideUtilisationOuvert} onFermer={() => setGuideUtilisationOuvert(false)} />
       <GuideInstallationModal ouvert={guideInstallationOuvert} onFermer={() => setGuideInstallationOuvert(false)} />
-
-      {toastInstallAffiche && promptInstall && (
-        <div className="pwa-toast" role="dialog" aria-label="Installer DockerForge">
-          <div className="pwa-toast-icone">⚒</div>
-          <div className="pwa-toast-texte">
-            <div className="pwa-toast-titre">Installer DockerForge</div>
-            <div className="pwa-toast-sous">Accès hors-ligne, icône sur ton bureau/écran d'accueil.</div>
-          </div>
-          <div className="pwa-toast-actions">
-            <button className="pwa-toast-btn" onClick={refuserInstall}>Plus tard</button>
-            <button className="pwa-toast-btn pwa-toast-btn-primary" onClick={installerPWA}>Installer</button>
-          </div>
-        </div>
-      )}
     </div>
   )
 }

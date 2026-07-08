@@ -118,6 +118,15 @@ dockerforge/
 - [ ] Détection de secrets plus fine (liste blanche/noire personnalisable).
 - [ ] Déploiement sur GitHub Pages avec URL publique.
 
+## Correctifs récents
+
+- **Débordement horizontal / hero décalé à gauche** : corrigé. Les colonnes
+  de la grille (`.colonne`) n'avaient pas `min-width: 0`, ce qui est un piège
+  classique de CSS Grid — le contenu large de l'aperçu YAML (lignes non
+  retournées à la ligne) forçait toute la page à s'élargir au-delà de l'écran,
+  décalant visuellement l'en-tête vers la gauche. `overflow-x: hidden` ajouté
+  en sécurité sur `body` en complément.
+
 ## Notes techniques
 
 - Tout est calculé côté client (aucun backend) : le site est 100% statique.

@@ -2,38 +2,11 @@
 <html lang="fr">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>DockerForge — Générateur de docker-compose.yml</title>
-    <meta name="description" content="DockerForge — Forge visuellement ton docker-compose.yml : stacks prêtes, catalogue d'images, réseaux, secrets, export .zip. 100% local, aucune donnée envoyée." />
-    <meta name="theme-color" content="#2496ED" media="(prefers-color-scheme: light)" />
-    <meta name="theme-color" content="#0b1220" media="(prefers-color-scheme: dark)" />
-
-    <!-- PWA -->
-    <link rel="manifest" href="./manifest.webmanifest" />
-    <link rel="icon" type="image/svg+xml" href="./icons/icon.svg" />
-    <link rel="icon" type="image/png" sizes="192x192" href="./icons/icon-192.png" />
-    <link rel="icon" type="image/png" sizes="512x512" href="./icons/icon-512.png" />
-    <link rel="apple-touch-icon" href="./icons/icon-192.png" />
-    <meta name="apple-mobile-web-app-capable" content="yes" />
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-    <meta name="apple-mobile-web-app-title" content="DockerForge" />
-
-    <!-- Open Graph -->
-    <meta property="og:title" content="DockerForge" />
-    <meta property="og:description" content="Forge ton docker-compose.yml visuellement." />
-    <meta property="og:image" content="./icons/icon-512.png" />
-    <meta property="og:type" content="website" />
   </head>
   <body>
     <div id="root"></div>
     <script type="module" src="/src/main.jsx"></script>
-    <script>
-      // Enregistrement du Service Worker (PWA)
-      if ('serviceWorker' in navigator) {
-        window.addEventListener('load', () => {
-          navigator.serviceWorker.register('./sw.js').catch(() => {})
-        })
-      }
-    </script>
   </body>
 </html>
