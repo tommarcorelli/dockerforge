@@ -334,6 +334,124 @@ export const STACKS = [
       },
     ],
   },
+  {
+    id: 'pihole',
+    nom: 'Anti-pub réseau (Pi-hole)',
+    description: 'Bloqueur de pub DNS pour tout le réseau local',
+    services: [
+      {
+        name: 'pihole', image: 'pihole/pihole:latest',
+        ports: [
+          { host: 53, container: 53 },
+          { host: 80, container: 80 },
+        ],
+        volumes: ['./pihole/etc-pihole:/etc/pihole', './pihole/etc-dnsmasq:/etc/dnsmasq.d'],
+        env: [{ key: 'WEBPASSWORD', value: 'change_moi' }, { key: 'TZ', value: 'Europe/Paris' }],
+        dependsOn: [],
+      },
+    ],
+  },
+  {
+    id: 'uptime-kuma',
+    nom: 'Supervision (Uptime Kuma)',
+    description: 'Page de statut et surveillance de services en ligne',
+    services: [
+      {
+        name: 'uptime-kuma', image: 'louislam/uptime-kuma:1',
+        ports: [{ host: 3001, container: 3001 }],
+        volumes: ['./uptime-kuma-data:/app/data'], env: [], dependsOn: [],
+      },
+    ],
+  },
+  {
+    id: 'home-assistant',
+    nom: 'Domotique (Home Assistant)',
+    description: 'Plateforme open source de maison connectée',
+    services: [
+      {
+        name: 'homeassistant', image: 'homeassistant/home-assistant:stable',
+        ports: [{ host: 8123, container: 8123 }],
+        volumes: ['./homeassistant-config:/config'],
+        env: [{ key: 'TZ', value: 'Europe/Paris' }], dependsOn: [],
+      },
+    ],
+  },
+  {
+    id: 'jellyfin',
+    nom: 'Serveur multimédia (Jellyfin)',
+    description: 'Streaming de films/séries/musique, façon Plex mais libre',
+    services: [
+      {
+        name: 'jellyfin', image: 'jellyfin/jellyfin:latest',
+        ports: [{ host: 8096, container: 8096 }],
+        volumes: ['./jellyfin-config:/config', './media:/media'],
+        env: [], dependsOn: [],
+      },
+    ],
+  },
+  {
+    id: 'directus',
+    nom: 'CMS headless (Directus)',
+    description: 'Directus + PostgreSQL',
+    services: [
+      {
+        name: 'directus', image: 'directus/directus:latest',
+        ports: [{ host: 8055, container: 8055 }],
+        volumes: ['./directus-uploads:/directus/uploads'],
+        env: [
+          { key: 'KEY', value: 'change_moi' },
+          { key: 'SECRET', value: 'change_moi' },
+          { key: 'ADMIN_EMAIL', value: 'admin@example.com' },
+          { key: 'ADMIN_PASSWORD', value: 'change_moi' },
+          { key: 'DB_CLIENT', value: 'pg' },
+          { key: 'DB_HOST', value: 'db' },
+          { key: 'DB_DATABASE', value: 'directus' },
+          { key: 'DB_USER', value: 'directus' },
+          { key: 'DB_PASSWORD', value: 'change_moi' },
+        ],
+        dependsOn: ['db'],
+      },
+      {
+        name: 'db', image: 'postgres:16', ports: [{ host: 5432, container: 5432 }],
+        volumes: ['./data-postgres:/var/lib/postgresql/data'],
+        env: [
+          { key: 'POSTGRES_USER', value: 'directus' },
+          { key: 'POSTGRES_PASSWORD', value: 'change_moi' },
+          { key: 'POSTGRES_DB', value: 'directus' },
+        ],
+        dependsOn: [],
+      },
+    ],
+  },
+  {
+    id: 'redis-insight',
+    nom: 'Cache + interface (Redis + RedisInsight)',
+    description: 'Redis avec une interface web pour explorer les données',
+    services: [
+      {
+        name: 'redis', image: 'redis:latest', ports: [{ host: 6379, container: 6379 }],
+        volumes: ['./data-redis:/data'], env: [], dependsOn: [],
+      },
+      {
+        name: 'redisinsight', image: 'redis/redisinsight:latest',
+        ports: [{ host: 8001, container: 5540 }],
+        volumes: ['./redisinsight-data:/data'], env: [], dependsOn: ['redis'],
+      },
+    ],
+  },
+  {
+    id: 'portainer',
+    nom: 'Gestion Docker (Portainer)',
+    description: 'Interface web pour gérer tes conteneurs et volumes Docker',
+    services: [
+      {
+        name: 'portainer', image: 'portainer/portainer-ce:latest',
+        ports: [{ host: 9000, container: 9000 }],
+        volumes: ['/var/run/docker.sock:/var/run/docker.sock', './portainer-data:/data'],
+        env: [], dependsOn: [],
+      },
+    ],
+  },
 ]
 
 // Construit des objets service complets (avec id) à partir d'une stack,

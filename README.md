@@ -103,7 +103,11 @@ dockerforge/
   répartition des services par réseau.
 
 **Stacks & import**
-- Stacks prêtes à l'emploi : LAMP, WordPress+MySQL, Monitoring, Node+Mongo.
+- **23 stacks prêtes à l'emploi**, en un clic : LAMP, LEMP, WordPress, Monitoring
+  léger, Observabilité complète (Prometheus+Grafana+cAdvisor+Node Exporter),
+  Node+Mongo, ELK, n8n, Ghost, Metabase, Keycloak, Gitea, Nextcloud, Strapi,
+  Matomo, Mailpit, Pi-hole, Uptime Kuma, Home Assistant, Jellyfin, Directus,
+  Redis+RedisInsight, Portainer.
 - Import d'un `docker-compose.yml` existant pour l'éditer visuellement.
 
 **Sécurité**
