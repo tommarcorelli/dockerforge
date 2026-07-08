@@ -143,6 +143,17 @@ dockerforge/
 
 ## Correctifs récents
 
+- **Hero toujours décalé à gauche malgré le premier correctif** : centrage
+  renforcé. En plus du `margin: 0 auto` sur `.hero-contenu`, `.hero` centre
+  maintenant aussi son contenu via flexbox (`display: flex; justify-content:
+  center`) — une double sécurité qui élimine le risque de dépendre d'un seul
+  mécanisme de centrage CSS.
+- **Aide pour les clés applicatives (`APP_KEY` et similaires)** : une bulle
+  d'aide ⓘ apparaît maintenant à côté de ces variables pour expliquer qu'il
+  ne s'agit pas d'un simple mot de passe (souvent une clé encodée en base64,
+  avec un format précis attendu par l'appli — voir la doc Docker Hub de
+  l'image). Le générateur 🎲 produit aussi des valeurs plus longues (32
+  caractères) pour ce genre de champ.
 - **Port toujours identique en cliquant plusieurs images du catalogue** :
   corrigé. Cliquer sur une image du catalogue ne mettait à jour le port que
   si les champs port étaient encore vides — en cliquant sur une deuxième

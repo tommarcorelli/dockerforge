@@ -79,6 +79,9 @@ code {
   overflow: hidden;
   border-bottom: 1px solid var(--blueprint-line);
   background: var(--blueprint-panel);
+  display: flex;
+  justify-content: center;
+  width: 100%;
 }
 
 .hero-fond {
@@ -89,6 +92,7 @@ code {
 
 .hero-contenu {
   position: relative;
+  width: 100%;
   max-width: 900px;
   margin: 0 auto;
   text-align: center;

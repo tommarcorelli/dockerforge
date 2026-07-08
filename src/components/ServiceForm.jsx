@@ -7,13 +7,20 @@ import { portsHoteUtilises, trouverPortLibre } from '../core/catalogue.js'
 // Détecte si une clé d'env ressemble à un champ sensible (mot de passe, secret...)
 function estChampSensible(cle) {
   const c = (cle || '').toLowerCase()
-  return /password|passwd|secret|token|api_key|apikey|pass\b/i.test(c)
+  return /password|passwd|secret|token|api_key|apikey|pass\b|key/i.test(c)
 }
 
-// Génère un mot de passe aléatoire robuste (20 caractères, alphanumérique)
+// Détecte une clé applicative type APP_KEY (Laravel/Firefly III...) qui a des
+// contraintes de format particulières (longueur/encodage précis selon l'appli)
+function estCleApplicative(cle) {
+  const c = (cle || '').toLowerCase()
+  return /^app_key$|_key$|^key$/.test(c) && !/api_key|apikey/.test(c)
+}
+
+// Génère un mot de passe aléatoire robuste (32 caractères, alphanumérique)
 function genererMotDePasse() {
   const alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789'
-  const tableau = new Uint32Array(20)
+  const tableau = new Uint32Array(32)
   crypto.getRandomValues(tableau)
   return Array.from(tableau, (n) => alphabet[n % alphabet.length]).join('')
 }
@@ -297,11 +304,14 @@ function ServiceForm({ onAdd, servicesExistants, servicesActuels, networksDispon
                   value={e2.value}
                   onChange={(e) => majEnv(i, 'value', e.target.value)}
                 />
+                {estCleApplicative(e2.key) && (
+                  <Aide texte="Cette clé n'est pas un simple mot de passe : c'est une clé de chiffrement propre à l'application (souvent 32 caractères encodés en base64). Le bouton 🎲 génère une valeur aléatoire de bonne longueur pour démarrer, mais vérifie la doc Docker Hub de l'image : certaines applis exigent un format précis (ex: préfixe 'base64:', ou une commande dédiée comme 'php artisan key:generate') et refuseront de démarrer sinon." />
+                )}
                 {estChampSensible(e2.key) && (
                   <button
                     type="button"
                     className="btn-icone"
-                    title="Générer un mot de passe sécurisé"
+                    title="Générer une valeur aléatoire sécurisée"
                     onClick={() => majEnv(i, 'value', genererMotDePasse())}
                   >
                     🎲
