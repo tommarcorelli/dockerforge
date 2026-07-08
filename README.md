@@ -20,6 +20,22 @@ npm run build
 
 Le dossier `dist/` généré peut être déployé sur GitHub Pages, Netlify ou Vercel (gratuit).
 
+### Déploiement automatique sur GitHub Pages
+
+Un workflow est déjà prêt dans `.github/workflows/deploy.yml` : à chaque
+`push` sur la branche `main`, le site est reconstruit et republié
+automatiquement. **Une seule chose à faire une fois** après avoir push le
+projet sur GitHub :
+
+1. Sur GitHub, va dans **Settings** du repo → **Pages** (menu de gauche).
+2. Sous "Build and deployment" → **Source**, choisis **GitHub Actions**
+   (pas "Deploy from a branch").
+3. Fais un `push` (ou relance le workflow depuis l'onglet **Actions** du repo).
+4. Après 1-2 minutes, l'URL publique apparaît dans **Settings → Pages**
+   (format `https://tommarcorelli.github.io/nom-du-repo/`).
+
+Ensuite, plus rien à faire : chaque `push` sur `main` republie le site à jour.
+
 ## Structure
 
 ```
@@ -116,7 +132,6 @@ dockerforge/
 ## Idées de suites possibles
 
 - [ ] Détection de secrets plus fine (liste blanche/noire personnalisable).
-- [ ] Déploiement sur GitHub Pages avec URL publique.
 
 ## Correctifs récents
 
