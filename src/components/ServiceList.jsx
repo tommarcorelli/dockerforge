@@ -7,6 +7,8 @@ import Icon from './Icon.jsx'
 // numéro, sa teinte de catégorie, et sa texture ondulée.
 function ServiceList({ services, onRemove, onDuplicate, onReorder, onEdit, idEnEdition }) {
   const [recherche, setRecherche] = useState('')
+  const [indexGlisse, setIndexGlisse] = useState(null)
+  const [indexSurvole, setIndexSurvole] = useState(null)
 
   if (services.length === 0) {
     return (
@@ -27,6 +29,11 @@ function ServiceList({ services, onRemove, onDuplicate, onReorder, onEdit, idEnE
         ({ s }) => (s.name || '').toLowerCase().includes(q) || (s.image || '').toLowerCase().includes(q)
       )
     : avecIndex
+
+  // Le glisser-déposer réordonne par index réel dans la liste complète : le
+  // désactiver pendant une recherche filtrée évite toute confusion entre la
+  // position affichée et la position réelle.
+  const dragActif = !!onReorder && !q
 
   return (
     <div className="conteneurs-panneau">
@@ -51,7 +58,37 @@ function ServiceList({ services, onRemove, onDuplicate, onReorder, onEdit, idEnE
             const ports = (s.ports || []).filter((p) => p.host && p.container)
 
             return (
-              <div className={`conteneur conteneur-${teinte} ${s.id === idEnEdition ? 'conteneur-en-edition' : ''}`} key={s.id}>
+              <div
+                className={`conteneur conteneur-${teinte} ${s.id === idEnEdition ? 'conteneur-en-edition' : ''} ${indexGlisse === i ? 'conteneur-en-glisse' : ''} ${indexSurvole === i && indexGlisse !== null && indexGlisse !== i ? 'conteneur-survole' : ''}`}
+                key={s.id}
+                onDragOver={(e) => {
+                  if (!dragActif || indexGlisse === null) return
+                  e.preventDefault()
+                  if (indexSurvole !== i) setIndexSurvole(i)
+                }}
+                onDrop={(e) => {
+                  if (!dragActif || indexGlisse === null) return
+                  e.preventDefault()
+                  if (indexGlisse !== i) onReorder(indexGlisse, i)
+                  setIndexGlisse(null)
+                  setIndexSurvole(null)
+                }}
+              >
+                {dragActif && (
+                  <span
+                    className="conteneur-grip"
+                    draggable
+                    title="Glisser pour réordonner"
+                    onDragStart={(e) => {
+                      e.dataTransfer.effectAllowed = 'move'
+                      setIndexGlisse(i)
+                    }}
+                    onDragEnd={() => {
+                      setIndexGlisse(null)
+                      setIndexSurvole(null)
+                    }}
+                  >⠿</span>
+                )}
                 <div className="conteneur-embout" />
                 <div className="conteneur-corps">
                   <div className="conteneur-entete">

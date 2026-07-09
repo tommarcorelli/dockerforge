@@ -705,6 +705,26 @@ button:active { transform: scale(0.97); }
   outline-offset: 2px;
 }
 .conteneur-embout { width: 8px; flex-shrink: 0; }
+
+.conteneur-grip {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  flex-shrink: 0;
+  color: var(--muted);
+  cursor: grab;
+  font-size: 1rem;
+  user-select: none;
+  touch-action: none;
+}
+.conteneur-grip:hover { color: var(--ink); }
+.conteneur-grip:active { cursor: grabbing; }
+
+.conteneur-en-glisse { opacity: 0.4; }
+.conteneur-survole {
+  box-shadow: inset 0 2px 0 var(--docker), inset 0 -2px 0 var(--docker);
+}
 .conteneur-cyan  .conteneur-embout { background: linear-gradient(180deg, var(--docker), var(--docker-2)); }
 .conteneur-orange .conteneur-embout { background: linear-gradient(180deg, var(--forge), var(--forge-2)); }
 .conteneur-jaune  .conteneur-embout { background: linear-gradient(180deg, var(--gold), #b7811a); }
@@ -848,6 +868,13 @@ button:active { transform: scale(0.97); }
   color: var(--code-ink);
 }
 
+.yaml-cle { color: var(--docker); font-weight: 600; }
+.yaml-chaine { color: var(--mint); }
+.yaml-nombre { color: var(--gold); }
+.yaml-bool { color: var(--forge); font-weight: 600; }
+.yaml-commentaire { color: var(--muted); font-style: italic; }
+.yaml-tiret { color: var(--muted); }
+
 .actions-preview {
   display: flex;
   gap: 0.6rem;
@@ -901,6 +928,22 @@ button:active { transform: scale(0.97); }
 
 /* ---------- CHIPS ---------- */
 .chips-dependances { display: flex; flex-wrap: wrap; gap: 0.4rem; }
+
+.secrets-reglages {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.2rem;
+  background: var(--panel-2);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  padding: 1rem;
+  margin: 0.6rem 0 1rem;
+}
+.secrets-colonne { display: flex; flex-direction: column; gap: 0.5rem; }
+.secrets-colonne .ligne-champ { margin-bottom: 0; }
+@media (max-width: 720px) {
+  .secrets-reglages { grid-template-columns: 1fr; }
+}
 .chip {
   border-radius: 999px;
   font-size: 0.8rem;
@@ -972,6 +1015,27 @@ button:active { transform: scale(0.97); }
   height: 3px;
   border-radius: 3px;
   background: linear-gradient(90deg, var(--docker), var(--forge));
+}
+
+.apercu-onglets {
+  display: flex;
+  gap: 0.4rem;
+  margin: 0.8rem 0 1rem;
+  border-bottom: 1px solid var(--line);
+}
+.apercu-onglet {
+  background: transparent;
+  border: 0;
+  color: var(--muted);
+  padding: 0.55rem 0.9rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  border-radius: 8px 8px 0 0;
+}
+.apercu-onglet:hover { color: var(--ink); background: var(--panel-2); }
+.apercu-onglet-actif {
+  color: var(--docker);
+  box-shadow: inset 0 -2px 0 var(--docker);
 }
 
 .badge-compteur {

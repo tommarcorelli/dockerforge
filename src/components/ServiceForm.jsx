@@ -1,14 +1,8 @@
 import { useState, useEffect } from 'react'
 import ImageCatalog from './ImageCatalog.jsx'
 import Aide from './Aide.jsx'
-import { POLITIQUES_RESTART } from '../core/generateur.js'
+import { POLITIQUES_RESTART, estSecret } from '../core/generateur.js'
 import { portsHoteUtilises, trouverPortLibre } from '../core/catalogue.js'
-
-// Détecte si une clé d'env ressemble à un champ sensible (mot de passe, secret...)
-function estChampSensible(cle) {
-  const c = (cle || '').toLowerCase()
-  return /password|passwd|secret|token|api_key|apikey|pass\b|key/i.test(c)
-}
 
 // Détecte une clé applicative type APP_KEY (Laravel/Firefly III...) qui a des
 // contraintes de format particulières (longueur/encodage précis selon l'appli)
@@ -44,7 +38,7 @@ const serviceVide = () => ({
 // Formulaire d'ajout/édition d'un service Docker — 3 niveaux de complexité :
 // essentiel (toujours visible), configuration (volumes/env, repliable),
 // avancé (redémarrage/dépendances/réseaux/profils/santé/ressources, repliable)
-function ServiceForm({ onAdd, servicesExistants, servicesActuels, networksDisponibles, serviceAEditer, onUpdate, onAnnulerEdition }) {
+function ServiceForm({ onAdd, servicesExistants, servicesActuels, networksDisponibles, serviceAEditer, onUpdate, onAnnulerEdition, secretsInclus, secretsExclus }) {
   const [service, setService] = useState(serviceVide())
   const [ouvertConfig, setOuvertConfig] = useState(false)
   const [ouvertAvance, setOuvertAvance] = useState(false)
@@ -330,7 +324,7 @@ function ServiceForm({ onAdd, servicesExistants, servicesActuels, networksDispon
                 {estCleApplicative(e2.key) && (
                   <Aide texte="Cette clé n'est pas un simple mot de passe : c'est une clé de chiffrement propre à l'application (souvent 32 caractères encodés en base64). Le bouton 🎲 génère une valeur aléatoire de bonne longueur pour démarrer, mais vérifie la doc Docker Hub de l'image : certaines applis exigent un format précis (ex: préfixe 'base64:', ou une commande dédiée comme 'php artisan key:generate') et refuseront de démarrer sinon." />
                 )}
-                {estChampSensible(e2.key) && (
+                {estSecret(e2.key, { inclusions: secretsInclus, exclusions: secretsExclus }) && (
                   <button
                     type="button"
                     className="btn-icone"

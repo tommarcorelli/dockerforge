@@ -17,6 +17,8 @@ function projetVide(nom = 'Sans titre') {
     networks: [],
     nomProjet: '',
     extraireSecrets: false,
+    secretsInclus: [],
+    secretsExclus: [],
     creeLe: Date.now(),
     majLe: Date.now(),
   }
@@ -56,6 +58,43 @@ export function chargerProjets() {
 
 export function sauvegarderProjets(data) {
   localStorage.setItem(CLE_PROJETS, JSON.stringify(data))
+}
+
+// Exporte un projet vers un objet JSON portable (sans son id interne), pour
+// pouvoir le sauvegarder hors du navigateur ou le partager/réimporter ailleurs.
+export function exporterProjet(projet) {
+  return {
+    formatDockerForge: 1,
+    nom: projet.nom,
+    services: projet.services,
+    networks: projet.networks,
+    nomProjet: projet.nomProjet,
+    extraireSecrets: projet.extraireSecrets,
+    secretsInclus: projet.secretsInclus || [],
+    secretsExclus: projet.secretsExclus || [],
+    exporteLe: Date.now(),
+  }
+}
+
+// Reconstruit un projet interne complet à partir d'un JSON exporté par
+// exporterProjet — régénère systématiquement tous les id (projet + chaque
+// service) pour ne jamais entrer en collision avec un projet déjà présent.
+export function importerProjet(data) {
+  if (!data || typeof data !== 'object' || !Array.isArray(data.services)) {
+    throw new Error("Fichier JSON invalide : ce n'est pas un projet DockerForge exporté.")
+  }
+  return {
+    id: idProjet(),
+    nom: data.nom ? `${data.nom} (importé)` : 'Projet importé',
+    services: data.services.map((s) => ({ ...s, id: crypto.randomUUID() })),
+    networks: Array.isArray(data.networks) ? data.networks : [],
+    nomProjet: data.nomProjet || '',
+    extraireSecrets: !!data.extraireSecrets,
+    secretsInclus: Array.isArray(data.secretsInclus) ? data.secretsInclus : [],
+    secretsExclus: Array.isArray(data.secretsExclus) ? data.secretsExclus : [],
+    creeLe: Date.now(),
+    majLe: Date.now(),
+  }
 }
 
 export { projetVide }

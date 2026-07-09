@@ -7,11 +7,11 @@ import NetworkManager from './components/NetworkManager.jsx'
 import GuideUtilisationModal from './components/GuideUtilisationModal.jsx'
 import GuideInstallationModal from './components/GuideInstallationModal.jsx'
 import ProjectManager from './components/ProjectManager.jsx'
-import { buildDockerCompose, validerServices, buildEnvFiles } from './core/generateur.js'
+import { buildDockerCompose, validerServices, buildEnvFiles, buildDockerRunScript } from './core/generateur.js'
 import { portsHoteUtilises, trouverPortLibre } from './core/catalogue.js'
 import { construireStack } from './core/stacks.js'
 import { importerDockerCompose } from './core/importateur.js'
-import { chargerProjets, sauvegarderProjets, projetVide } from './core/projets.js'
+import { chargerProjets, sauvegarderProjets, projetVide, exporterProjet, importerProjet } from './core/projets.js'
 import { siDocker } from 'simple-icons'
 import Icon from './components/Icon.jsx'
 import SchemaNavire from './components/SchemaNavire.jsx'
@@ -59,6 +59,10 @@ function App() {
 
   const projetActif = etat.projets.find((p) => p.id === etat.actifId) || etat.projets[0]
   const { services, networks, nomProjet, extraireSecrets } = projetActif
+  // Valeurs par défaut pour les projets sauvegardés avant l'ajout de cette
+  // fonctionnalité (absentes du localStorage existant).
+  const secretsInclus = projetActif.secretsInclus || []
+  const secretsExclus = projetActif.secretsExclus || []
 
   useEffect(() => {
     sauvegarderProjets(etat)
@@ -135,6 +139,40 @@ function App() {
       const actifId = e.actifId === id ? projets[0].id : e.actifId
       return { projets, actifId }
     })
+  }
+
+  // Télécharge le projet actif dans un fichier .json — pratique pour le
+  // sauvegarder ailleurs que dans le localStorage du navigateur, ou le
+  // transférer sur une autre machine (contrairement au docker-compose.yml,
+  // ce format garde aussi les couleurs/notes/état d'avancement internes).
+  function exporterProjetActuel() {
+    const donnees = exporterProjet(projetActif)
+    const blob = new Blob([JSON.stringify(donnees, null, 2)], { type: 'application/json' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    const slug = (projetActif.nom || 'projet').trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '') || 'projet'
+    a.href = url
+    a.download = `${slug}.dockerforge.json`
+    a.click()
+    URL.revokeObjectURL(url)
+  }
+
+  function importerProjetFichier(e) {
+    const fichier = e.target.files[0]
+    if (!fichier) return
+    const lecteur = new FileReader()
+    lecteur.onload = () => {
+      try {
+        const donnees = JSON.parse(lecteur.result)
+        const projet = importerProjet(donnees)
+        setEtat((prev) => ({ ...prev, projets: [...prev.projets, projet], actifId: projet.id }))
+        setErreursImport([])
+      } catch (err) {
+        setErreursImport([err.message || "Impossible de lire ce fichier JSON."])
+      }
+    }
+    lecteur.readAsText(fichier)
+    e.target.value = ''
   }
 
   // --- Réseaux ---
@@ -215,9 +253,22 @@ function App() {
   }
 
   function modifierService(serviceModifie) {
-    patcherProjetActif((p) => ({
-      services: p.services.map((s) => (s.id === serviceEnEditionId ? { ...serviceModifie, id: s.id } : s)),
-    }))
+    patcherProjetActif((p) => {
+      const ancien = p.services.find((s) => s.id === serviceEnEditionId)
+      const nomChange = ancien && ancien.name !== serviceModifie.name
+      return {
+        services: p.services.map((s) => {
+          if (s.id === serviceEnEditionId) return { ...serviceModifie, id: s.id }
+          // Si le nom a changé, les autres services qui dépendaient de
+          // l'ancien nom doivent suivre — sinon leur "depends_on" pointerait
+          // vers un service qui n'existe plus dans le docker-compose.yml.
+          if (nomChange && (s.dependsOn || []).includes(ancien.name)) {
+            return { ...s, dependsOn: s.dependsOn.map((d) => (d === ancien.name ? serviceModifie.name : d)) }
+          }
+          return s
+        }),
+      }
+    })
     setServiceEnEditionId(null)
   }
 
@@ -262,7 +313,10 @@ function App() {
     patcherProjetActif({ services: [] })
     declencherUndo(
       `Liste vidée (${servicesSauvegardes.length} conteneur${servicesSauvegardes.length > 1 ? 's' : ''})`,
-      () => patcherProjet(projetCourantId, { services: servicesSauvegardes })
+      // On préfixe par la liste sauvegardée plutôt que de l'imposer telle
+      // quelle : si un service a été rajouté entre le "Tout effacer" et le
+      // clic sur "Annuler", il ne doit pas disparaître.
+      () => patcherProjet(projetCourantId, (p) => ({ services: [...servicesSauvegardes, ...p.services] }))
     )
   }
 
@@ -274,19 +328,47 @@ function App() {
     patcherProjetActif((p) => ({ extraireSecrets: !p.extraireSecrets }))
   }
 
+  // Une clé ne peut appartenir qu'à une seule des deux listes à la fois —
+  // l'ajouter à l'une la retire automatiquement de l'autre.
+  function ajouterInclusionSecret(cle) {
+    patcherProjetActif((p) => ({
+      secretsInclus: (p.secretsInclus || []).includes(cle) ? p.secretsInclus : [...(p.secretsInclus || []), cle],
+      secretsExclus: (p.secretsExclus || []).filter((c) => c !== cle),
+    }))
+  }
+
+  function supprimerInclusionSecret(cle) {
+    patcherProjetActif((p) => ({ secretsInclus: (p.secretsInclus || []).filter((c) => c !== cle) }))
+  }
+
+  function ajouterExclusionSecret(cle) {
+    patcherProjetActif((p) => ({
+      secretsExclus: (p.secretsExclus || []).includes(cle) ? p.secretsExclus : [...(p.secretsExclus || []), cle],
+      secretsInclus: (p.secretsInclus || []).filter((c) => c !== cle),
+    }))
+  }
+
+  function supprimerExclusionSecret(cle) {
+    patcherProjetActif((p) => ({ secretsExclus: (p.secretsExclus || []).filter((c) => c !== cle) }))
+  }
+
   // --- Dérivés ---
 
   const { erreurs, avertissements } = useMemo(
-    () => validerServices(services, { extraireSecrets }),
-    [services, extraireSecrets]
+    () => validerServices(services, { extraireSecrets, secretsInclus, secretsExclus }),
+    [services, extraireSecrets, secretsInclus, secretsExclus]
   )
   const yaml = useMemo(
-    () => buildDockerCompose(services, { extraireSecrets, networks, nomProjet }),
-    [services, extraireSecrets, networks, nomProjet]
+    () => buildDockerCompose(services, { extraireSecrets, networks, nomProjet, secretsInclus, secretsExclus }),
+    [services, extraireSecrets, networks, nomProjet, secretsInclus, secretsExclus]
   )
   const envFiles = useMemo(
-    () => (extraireSecrets ? buildEnvFiles(services) : []),
-    [services, extraireSecrets]
+    () => (extraireSecrets ? buildEnvFiles(services, { secretsInclus, secretsExclus }) : []),
+    [services, extraireSecrets, secretsInclus, secretsExclus]
+  )
+  const dockerRunScript = useMemo(
+    () => buildDockerRunScript(services, { extraireSecrets, networks, secretsInclus, secretsExclus }),
+    [services, extraireSecrets, networks, secretsInclus, secretsExclus]
   )
 
   const nbPorts = services.reduce(
@@ -360,6 +442,8 @@ function App() {
           onRenommer={renommerProjet}
           onDupliquer={dupliquerProjet}
           onSupprimer={supprimerProjet}
+          onExporter={exporterProjetActuel}
+          onImporterFichier={importerProjetFichier}
         />
       </div>
 
@@ -420,12 +504,17 @@ function App() {
               <ServiceForm
                 key={projetActif.id}
                 onAdd={ajouterService}
-                servicesExistants={services.map((s) => s.name).filter(Boolean)}
-                servicesActuels={services}
+                servicesExistants={services
+                  .filter((s) => s.id !== serviceEnEditionId)
+                  .map((s) => s.name)
+                  .filter(Boolean)}
+                servicesActuels={services.filter((s) => s.id !== serviceEnEditionId)}
                 networksDisponibles={networks}
                 serviceAEditer={services.find((s) => s.id === serviceEnEditionId) || null}
                 onUpdate={modifierService}
                 onAnnulerEdition={annulerEdition}
+                secretsInclus={secretsInclus}
+                secretsExclus={secretsExclus}
               />
             </div>
 
@@ -476,12 +565,19 @@ function App() {
           <div className="colonne colonne-pleine">
             <Preview
               yaml={yaml}
+              dockerRunScript={dockerRunScript}
               envFiles={envFiles}
               erreurs={erreurs}
               avertissements={avertissements}
               nbServices={services.length}
               extraireSecrets={extraireSecrets}
               onToggleSecrets={toggleExtraireSecrets}
+              secretsInclus={secretsInclus}
+              secretsExclus={secretsExclus}
+              onAjouterInclusion={ajouterInclusionSecret}
+              onSupprimerInclusion={supprimerInclusionSecret}
+              onAjouterExclusion={ajouterExclusionSecret}
+              onSupprimerExclusion={supprimerExclusionSecret}
             />
           </div>
         )}

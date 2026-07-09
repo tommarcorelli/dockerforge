@@ -1,7 +1,7 @@
 import { useState } from 'react'
 
 // Barre de gestion multi-projets : changer, créer, renommer, dupliquer, supprimer
-function ProjectManager({ projets, actifId, onChanger, onNouveau, onRenommer, onDupliquer, onSupprimer }) {
+function ProjectManager({ projets, actifId, onChanger, onNouveau, onRenommer, onDupliquer, onSupprimer, onExporter, onImporterFichier }) {
   const [renommageId, setRenommageId] = useState(null)
   const [brouillonNom, setBrouillonNom] = useState('')
 
@@ -45,6 +45,16 @@ function ProjectManager({ projets, actifId, onChanger, onNouveau, onRenommer, on
             Renommer
           </button>
           <button className="btn-discret" onClick={() => onDupliquer(actifId)}>Dupliquer</button>
+          <button className="btn-discret btn-import" onClick={onExporter}>⬇ Exporter (JSON)</button>
+          <label className="btn-discret btn-import">
+            ⬆ Importer (JSON)
+            <input
+              type="file"
+              accept=".json,application/json"
+              onChange={onImporterFichier}
+              hidden
+            />
+          </label>
           {projets.length > 1 && (
             <button className="btn-discret btn-danger" onClick={() => onSupprimer(actifId)}>Supprimer ce projet</button>
           )}
