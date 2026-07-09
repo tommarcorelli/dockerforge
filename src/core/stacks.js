@@ -879,6 +879,137 @@ export const STACKS = [
       },
     ],
   },
+  {
+    id: 'gitlab',
+    nom: 'Forge Git complète (GitLab)',
+    description: 'GitLab CE — dépôts, CI/CD, issues, en auto-hébergé',
+    services: [
+      {
+        name: 'gitlab', image: 'gitlab/gitlab-ce:latest',
+        ports: [{ host: 8090, container: 80 }, { host: 4443, container: 443 }],
+        volumes: [
+          './gitlab-config:/etc/gitlab',
+          './gitlab-logs:/var/log/gitlab',
+          './gitlab-data:/var/opt/gitlab',
+        ],
+        env: [{ key: 'GITLAB_OMNIBUS_CONFIG', value: "external_url 'http://localhost:8090'" }],
+        dependsOn: [],
+      },
+    ],
+  },
+  {
+    id: 'jupyter',
+    nom: 'Notebooks data science (Jupyter)',
+    description: 'Environnement Jupyter prêt à l\'emploi pour Python/data',
+    services: [
+      {
+        name: 'jupyter', image: 'jupyter/base-notebook:latest',
+        ports: [{ host: 8888, container: 8888 }],
+        volumes: ['./notebooks:/home/jovyan/work'],
+        env: [{ key: 'JUPYTER_TOKEN', value: 'change_moi' }],
+        dependsOn: [],
+      },
+    ],
+  },
+  {
+    id: 'pocketbase',
+    nom: 'Backend léger (PocketBase)',
+    description: 'Base de données + auth + API + admin, en un seul binaire',
+    services: [
+      {
+        name: 'pocketbase', image: 'spectado/pocketbase:latest',
+        ports: [{ host: 8090, container: 8090 }],
+        volumes: ['./pocketbase-data:/pb_data'],
+        env: [], dependsOn: [],
+      },
+    ],
+  },
+  {
+    id: 'plex',
+    nom: 'Serveur multimédia (Plex)',
+    description: 'Alternative à Jellyfin, avec compte Plex.tv requis',
+    services: [
+      {
+        name: 'plex', image: 'plexinc/pms-docker:latest',
+        ports: [{ host: 32400, container: 32400 }],
+        volumes: ['./plex-config:/config', './media:/data'],
+        env: [
+          { key: 'PLEX_CLAIM', value: 'change_moi_recupere_sur_plex.tv/claim' },
+          { key: 'TZ', value: 'Europe/Paris' },
+        ],
+        dependsOn: [],
+      },
+    ],
+  },
+  {
+    id: 'neo4j',
+    nom: 'Base de données graphe (Neo4j)',
+    description: 'Neo4j — relations et graphes, avec interface Neo4j Browser',
+    services: [
+      {
+        name: 'neo4j', image: 'neo4j:latest',
+        ports: [{ host: 7474, container: 7474 }, { host: 7687, container: 7687 }],
+        volumes: ['./neo4j-data:/data'],
+        env: [{ key: 'NEO4J_AUTH', value: 'neo4j/change_moi' }],
+        dependsOn: [],
+      },
+    ],
+  },
+  {
+    id: 'kafka',
+    nom: 'Streaming d\'événements (Kafka)',
+    description: 'Kafka + Zookeeper — messagerie distribuée haute performance',
+    services: [
+      {
+        name: 'zookeeper', image: 'bitnami/zookeeper:latest',
+        ports: [{ host: 2181, container: 2181 }],
+        volumes: ['./zookeeper-data:/bitnami/zookeeper'],
+        env: [{ key: 'ALLOW_ANONYMOUS_LOGIN', value: 'yes' }],
+        dependsOn: [],
+      },
+      {
+        name: 'kafka', image: 'bitnami/kafka:latest',
+        ports: [{ host: 9092, container: 9092 }],
+        volumes: ['./kafka-data:/bitnami/kafka'],
+        env: [
+          { key: 'KAFKA_CFG_ZOOKEEPER_CONNECT', value: 'zookeeper:2181' },
+          { key: 'ALLOW_PLAINTEXT_LISTENER', value: 'yes' },
+          { key: 'KAFKA_CFG_ADVERTISED_LISTENERS', value: 'PLAINTEXT://localhost:9092' },
+        ],
+        dependsOn: ['zookeeper'],
+      },
+    ],
+  },
+  {
+    id: 'jenkins',
+    nom: 'CI/CD (Jenkins)',
+    description: 'Automatisation de build/déploiement, auto-hébergée',
+    services: [
+      {
+        name: 'jenkins', image: 'jenkins/jenkins:lts',
+        ports: [{ host: 8080, container: 8080 }, { host: 50000, container: 50000 }],
+        volumes: ['./jenkins-data:/var/jenkins_home'],
+        env: [], dependsOn: [],
+      },
+    ],
+  },
+  {
+    id: 'rabbitmq',
+    nom: 'File de messages (RabbitMQ)',
+    description: 'RabbitMQ avec interface de gestion web',
+    services: [
+      {
+        name: 'rabbitmq', image: 'rabbitmq:3-management',
+        ports: [{ host: 15672, container: 15672 }, { host: 5672, container: 5672 }],
+        volumes: ['./rabbitmq-data:/var/lib/rabbitmq'],
+        env: [
+          { key: 'RABBITMQ_DEFAULT_USER', value: 'admin' },
+          { key: 'RABBITMQ_DEFAULT_PASS', value: 'change_moi' },
+        ],
+        dependsOn: [],
+      },
+    ],
+  },
 ]
 
 // Construit des objets service complets (avec id) à partir d'une stack,

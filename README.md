@@ -103,12 +103,13 @@ dockerforge/
   répartition des services par réseau.
 
 **Stacks & import**
-- **42 stacks prêtes à l'emploi**, en un clic, réparties par usage :
+- **50 stacks prêtes à l'emploi**, en un clic, réparties par usage :
   - *Web/CMS* : LAMP, LEMP, WordPress, Ghost, Strapi, Directus.
-  - *Données/dev* : Node+Mongo, Metabase, Gitea, SonarQube, pgAdmin, Redmine.
+  - *Données/dev* : Node+Mongo, Metabase, Gitea, GitLab, SonarQube, pgAdmin,
+    Redmine, Jupyter, PocketBase, Neo4j, Kafka+Zookeeper, Jenkins, RabbitMQ.
   - *Monitoring/logs* : Monitoring léger, Observabilité complète, ELK, Uptime Kuma, Matomo, Umami, changedetection.io.
   - *Auto-hébergement perso* : Nextcloud, Pi-hole, Home Assistant, Jellyfin,
-    Syncthing, Vaultwarden, Linkding, Firefly III, Mealie, Grocy, Homepage.
+    Plex, Syncthing, Vaultwarden, Linkding, Firefly III, Mealie, Grocy, Homepage.
   - *Communication/outils* : n8n, Mattermost, Wiki.js, BookStack, Mailpit,
     Meilisearch, WireGuard Easy, Keycloak, Portainer, Redis+RedisInsight,
     Miniflux, Shlink.
@@ -143,6 +144,11 @@ dockerforge/
 
 ## Correctifs récents
 
+- **Vague 6 de stacks** : GitLab, Jupyter, PocketBase, Plex, Neo4j,
+  Kafka+Zookeeper, Jenkins, RabbitMQ — 8 stacks de plus (42 → 50).
+- **Recherche pour les stacks** : un champ de recherche est apparu
+  au-dessus de la liste des stacks (nom, description, ou image cherchée),
+  pour les retrouver facilement maintenant qu'elles sont nombreuses.
 - **Hero toujours décalé à gauche malgré le premier correctif** : centrage
   renforcé. En plus du `margin: 0 auto` sur `.hero-contenu`, `.hero` centre
   maintenant aussi son contenu via flexbox (`display: flex; justify-content:
