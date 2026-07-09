@@ -1538,3 +1538,20 @@ kbd {
   outline: 2px solid var(--docker);
   outline-offset: 1px;
 }
+
+.conteneurs-recherche {
+  width: 100%;
+  background: var(--panel-2);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 0.6rem 0.9rem;
+  color: var(--ink);
+  font-family: var(--font-body);
+  font-size: 0.9rem;
+  margin-bottom: 0.8rem;
+}
+
+.conteneurs-recherche:focus {
+  outline: 2px solid var(--docker);
+  outline-offset: 1px;
+}
