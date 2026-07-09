@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from 'react'
+import { useState, useMemo, useEffect, useRef } from 'react'
 import ServiceForm from './components/ServiceForm.jsx'
 import ServiceList from './components/ServiceList.jsx'
 import Preview from './components/Preview.jsx'
@@ -25,6 +25,27 @@ function App() {
   const [guideInstallationOuvert, setGuideInstallationOuvert] = useState(false)
   const [ongletActif, setOngletActif] = useState('services')
   const [serviceEnEditionId, setServiceEnEditionId] = useState(null)
+  const [undo, setUndo] = useState(null)
+  const undoTimeoutRef = useRef(null)
+
+  // Déclenche un toast "annuler" après une suppression : garde l'action de
+  // restauration en mémoire pendant quelques secondes avant de l'oublier.
+  function declencherUndo(message, restaurer) {
+    if (undoTimeoutRef.current) clearTimeout(undoTimeoutRef.current)
+    setUndo({ message, restaurer })
+    undoTimeoutRef.current = setTimeout(() => setUndo(null), 7000)
+  }
+
+  function annulerDerniereAction() {
+    if (!undo) return
+    undo.restaurer()
+    setUndo(null)
+    if (undoTimeoutRef.current) clearTimeout(undoTimeoutRef.current)
+  }
+
+  useEffect(() => () => {
+    if (undoTimeoutRef.current) clearTimeout(undoTimeoutRef.current)
+  }, [])
   const [theme, setTheme] = useState(() => localStorage.getItem('dockerforge_theme') || 'clair')
 
   useEffect(() => {
@@ -48,6 +69,20 @@ function App() {
   useEffect(() => {
     setServiceEnEditionId(null)
   }, [projetActif.id])
+
+  // Comme patcherProjetActif, mais cible un projet précis par id — utile pour
+  // restaurer une suppression via "Annuler" même si l'utilisateur a changé
+  // de projet entre-temps.
+  function patcherProjet(id, patch) {
+    setEtat((e) => ({
+      ...e,
+      projets: e.projets.map((p) =>
+        p.id === id
+          ? { ...p, ...(typeof patch === 'function' ? patch(p) : patch), majLe: Date.now() }
+          : p
+      ),
+    }))
+  }
 
   // Applique un patch (objet ou fonction) au projet actuellement actif
   function patcherProjetActif(patch) {
@@ -156,8 +191,19 @@ function App() {
   }
 
   function supprimerService(id) {
+    const projetCourantId = etat.actifId
+    const index = services.findIndex((s) => s.id === id)
+    const service = services[index]
+    if (!service) return
     patcherProjetActif((p) => ({ services: p.services.filter((s) => s.id !== id) }))
     if (id === serviceEnEditionId) setServiceEnEditionId(null)
+    declencherUndo(`Service « ${service.name || 'sans nom'} » supprimé`, () => {
+      patcherProjet(projetCourantId, (p) => {
+        const liste = [...p.services]
+        liste.splice(Math.min(index, liste.length), 0, service)
+        return { services: liste }
+      })
+    })
   }
 
   function demarrerEdition(id) {
@@ -210,8 +256,14 @@ function App() {
   }
 
   function reinitialiser() {
-    if (services.length > 0 && !confirm('Vider la liste ? Tous les services configurés seront supprimés.')) return
+    if (services.length === 0) return
+    const projetCourantId = etat.actifId
+    const servicesSauvegardes = services
     patcherProjetActif({ services: [] })
+    declencherUndo(
+      `Liste vidée (${servicesSauvegardes.length} conteneur${servicesSauvegardes.length > 1 ? 's' : ''})`,
+      () => patcherProjet(projetCourantId, { services: servicesSauvegardes })
+    )
   }
 
   function setNomProjet(valeur) {
@@ -441,6 +493,13 @@ function App() {
 
       <GuideUtilisationModal ouvert={guideUtilisationOuvert} onFermer={() => setGuideUtilisationOuvert(false)} />
       <GuideInstallationModal ouvert={guideInstallationOuvert} onFermer={() => setGuideInstallationOuvert(false)} />
+
+      {undo && (
+        <div className="toast-undo" role="status">
+          <span>{undo.message}</span>
+          <button className="btn-discret" onClick={annulerDerniereAction}>↺ Annuler</button>
+        </div>
+      )}
     </div>
   )
 }

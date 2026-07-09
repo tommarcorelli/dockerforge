@@ -1555,3 +1555,27 @@ kbd {
   outline: 2px solid var(--docker);
   outline-offset: 1px;
 }
+
+.toast-undo {
+  position: fixed;
+  left: 50%;
+  bottom: 1.5rem;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.25);
+  padding: 0.75rem 1rem;
+  z-index: 100;
+  animation: toast-apparition 0.25s ease;
+}
+.toast-undo span { font-size: 0.9rem; color: var(--ink); }
+.toast-undo .btn-discret { white-space: nowrap; font-weight: 700; }
+
+@keyframes toast-apparition {
+  from { opacity: 0; transform: translate(-50%, 12px); }
+  to { opacity: 1; transform: translate(-50%, 0); }
+}
