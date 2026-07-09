@@ -535,6 +535,14 @@ button:active { transform: scale(0.97); }
   letter-spacing: 0.01em;
   border: 0;
 }
+
+.actions-formulaire {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.actions-formulaire .btn-principal { flex: 1; width: auto; }
+.actions-formulaire .btn-discret { margin-top: 0.4rem; white-space: nowrap; }
 .btn-principal:hover { transform: translateY(-1px); box-shadow: 0 10px 26px rgba(238, 125, 61, 0.45); }
 .btn-principal:disabled {
   opacity: 0.55;
@@ -691,6 +699,10 @@ button:active { transform: scale(0.97); }
   transform: translateY(-2px);
   box-shadow: var(--shadow);
   border-color: var(--line-strong);
+}
+.conteneur-en-edition {
+  outline: 2px solid var(--forge);
+  outline-offset: 2px;
 }
 .conteneur-embout { width: 8px; flex-shrink: 0; }
 .conteneur-cyan  .conteneur-embout { background: linear-gradient(180deg, var(--docker), var(--docker-2)); }

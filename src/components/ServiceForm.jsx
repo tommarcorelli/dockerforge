@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import ImageCatalog from './ImageCatalog.jsx'
 import Aide from './Aide.jsx'
 import { POLITIQUES_RESTART } from '../core/generateur.js'
@@ -44,7 +44,7 @@ const serviceVide = () => ({
 // Formulaire d'ajout/édition d'un service Docker — 3 niveaux de complexité :
 // essentiel (toujours visible), configuration (volumes/env, repliable),
 // avancé (redémarrage/dépendances/réseaux/profils/santé/ressources, repliable)
-function ServiceForm({ onAdd, servicesExistants, servicesActuels, networksDisponibles }) {
+function ServiceForm({ onAdd, servicesExistants, servicesActuels, networksDisponibles, serviceAEditer, onUpdate, onAnnulerEdition }) {
   const [service, setService] = useState(serviceVide())
   const [ouvertConfig, setOuvertConfig] = useState(false)
   const [ouvertAvance, setOuvertAvance] = useState(false)
@@ -53,6 +53,25 @@ function ServiceForm({ onAdd, servicesExistants, servicesActuels, networksDispon
   // cliquer une autre image du catalogue peut encore le mettre à jour. Passe à
   // false dès que la personne modifie le port à la main, pour ne plus l'écraser.
   const [portsAuto, setPortsAuto] = useState(true)
+
+  const enEdition = !!serviceAEditer
+
+  // Quand on demande à modifier un service (clic sur "Modifier" dans la
+  // liste), on charge ses valeurs dans le formulaire. Quand on quitte le
+  // mode édition (annulation ou validation), le formulaire redevient vide.
+  useEffect(() => {
+    if (serviceAEditer) {
+      setService({ ...serviceVide(), ...serviceAEditer })
+      setPortsAuto(false)
+      if ((serviceAEditer.volumes || []).some((v) => v && v.trim() !== '') ||
+          (serviceAEditer.env || []).some((e) => e.key && e.key.trim() !== '')) {
+        setOuvertConfig(true)
+      }
+    } else {
+      setService(serviceVide())
+      setPortsAuto(true)
+    }
+  }, [serviceAEditer])
 
   function majChamp(champ, valeur) {
     setService((s) => ({ ...s, [champ]: valeur }))
@@ -169,9 +188,13 @@ function ServiceForm({ onAdd, servicesExistants, servicesActuels, networksDispon
   function soumettre(e) {
     e.preventDefault()
     if (!service.name.trim() || !service.image.trim()) return
-    onAdd(service)
-    setService(serviceVide())
-    setPortsAuto(true)
+    if (enEdition) {
+      onUpdate(service)
+    } else {
+      onAdd(service)
+      setService(serviceVide())
+      setPortsAuto(true)
+    }
   }
 
   const volumesRemplis = service.volumes.filter((v) => v.trim() !== '').length
@@ -180,8 +203,8 @@ function ServiceForm({ onAdd, servicesExistants, servicesActuels, networksDispon
   return (
     <form className="service-form" onSubmit={soumettre}>
       <div className="form-tete">
-        <span className="form-tag">NOUVEAU CONTENEUR</span>
-        <h2>Ajouter un service</h2>
+        <span className="form-tag">{enEdition ? 'MODIFICATION' : 'NOUVEAU CONTENEUR'}</span>
+        <h2>{enEdition ? `Modifier « ${serviceAEditer.name} »` : 'Ajouter un service'}</h2>
       </div>
 
       <ImageCatalog onChoisir={choisirImage} />
@@ -493,7 +516,14 @@ function ServiceForm({ onAdd, servicesExistants, servicesActuels, networksDispon
         </>
       )}
 
-      <button type="submit" className="btn-principal">+ Ajouter ce conteneur</button>
+      <div className="actions-formulaire">
+        <button type="submit" className="btn-principal">
+          {enEdition ? '✓ Enregistrer les modifications' : '+ Ajouter ce conteneur'}
+        </button>
+        {enEdition && (
+          <button type="button" className="btn-discret" onClick={onAnnulerEdition}>Annuler</button>
+        )}
+      </div>
     </form>
   )
 }

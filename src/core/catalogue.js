@@ -31,20 +31,20 @@ export const CATALOGUE = [
       { nom: 'MySQL', image: 'mysql:8', portDefaut: 3306, suggestionNom: 'db', icone: siMysql, envDefaut: [
         { key: 'MYSQL_ROOT_PASSWORD', value: 'change_moi' },
         { key: 'MYSQL_DATABASE', value: 'app' },
-      ] },
+      ], healthcheck: 'mysqladmin ping -h 127.0.0.1 --silent' },
       { nom: 'PostgreSQL', image: 'postgres:16', portDefaut: 5432, suggestionNom: 'db', icone: siPostgresql, envDefaut: [
         { key: 'POSTGRES_PASSWORD', value: 'change_moi' },
         { key: 'POSTGRES_DB', value: 'app' },
-      ] },
+      ], healthcheck: 'pg_isready -U postgres' },
       { nom: 'MongoDB', image: 'mongo:latest', portDefaut: 27017, suggestionNom: 'mongo', icone: siMongodb, envDefaut: [
         { key: 'MONGO_INITDB_ROOT_USERNAME', value: 'root' },
         { key: 'MONGO_INITDB_ROOT_PASSWORD', value: 'change_moi' },
-      ] },
-      { nom: 'Redis', image: 'redis:latest', portDefaut: 6379, suggestionNom: 'redis', envDefaut: [], icone: siRedis },
+      ], healthcheck: 'mongosh --quiet --eval "db.adminCommand({ ping: 1 })"' },
+      { nom: 'Redis', image: 'redis:latest', portDefaut: 6379, suggestionNom: 'redis', envDefaut: [], icone: siRedis, healthcheck: 'redis-cli ping' },
       { nom: 'MariaDB', image: 'mariadb:latest', portDefaut: 3306, suggestionNom: 'db', icone: siMariadb, envDefaut: [
         { key: 'MARIADB_ROOT_PASSWORD', value: 'change_moi' },
         { key: 'MARIADB_DATABASE', value: 'app' },
-      ] },
+      ], healthcheck: 'mysqladmin ping -h 127.0.0.1 --silent' },
       { nom: 'InfluxDB', image: 'influxdb:latest', portDefaut: 8086, suggestionNom: 'influxdb', envDefaut: [], icone: siInfluxdb },
       { nom: 'Neo4j', image: 'neo4j:latest', portDefaut: 7474, suggestionNom: 'neo4j', icone: siNeo4j, envDefaut: [
         { key: 'NEO4J_AUTH', value: 'neo4j/change_moi' },
@@ -88,10 +88,10 @@ export const CATALOGUE = [
       { nom: 'RabbitMQ', image: 'rabbitmq:3-management', portDefaut: 15672, suggestionNom: 'rabbitmq', icone: siRabbitmq, envDefaut: [
         { key: 'RABBITMQ_DEFAULT_USER', value: 'admin' },
         { key: 'RABBITMQ_DEFAULT_PASS', value: 'change_moi' },
-      ] },
+      ], healthcheck: 'rabbitmq-diagnostics -q ping' },
       { nom: 'Elasticsearch', image: 'elasticsearch:8.15.0', portDefaut: 9200, suggestionNom: 'elasticsearch', icone: siElasticsearch, envDefaut: [
         { key: 'discovery.type', value: 'single-node' },
-      ] },
+      ], healthcheck: 'curl -s http://localhost:9200 >/dev/null || exit 1' },
       { nom: 'Apache Kafka', image: 'apache/kafka:latest', portDefaut: 9092, suggestionNom: 'kafka', envDefaut: [], icone: siApachekafka },
     ],
   },
@@ -140,6 +140,18 @@ export const CATALOGUE = [
     ],
   },
 ]
+
+// Retrouve la commande de healthcheck suggérée pour une image, si connue du
+// catalogue (bases de données/outils dont le client est inclus dans l'image
+// officielle — mysqladmin, pg_isready, redis-cli...). Renvoie '' si inconnue.
+export function healthcheckSuggere(image) {
+  const img = (image || '').toLowerCase()
+  for (const groupe of CATALOGUE) {
+    const trouve = groupe.images.find((i) => img.startsWith(i.image.split(':')[0]))
+    if (trouve && trouve.healthcheck) return trouve.healthcheck
+  }
+  return ''
+}
 
 // Retrouve l'icône (logo) associée à une image Docker, si connue du catalogue
 export function trouverIcone(image) {

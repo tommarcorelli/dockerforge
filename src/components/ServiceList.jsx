@@ -4,7 +4,7 @@ import Icon from './Icon.jsx'
 // Liste des services ajoutés, sous forme de cartes
 // signature de DockerForge : chaque service = un conteneur maritime avec son
 // numéro, sa teinte de catégorie, et sa texture ondulée.
-function ServiceList({ services, onRemove, onDuplicate, onReorder }) {
+function ServiceList({ services, onRemove, onDuplicate, onReorder, onEdit, idEnEdition }) {
   if (services.length === 0) {
     return (
       <div className="liste-vide-etat">
@@ -23,7 +23,7 @@ function ServiceList({ services, onRemove, onDuplicate, onReorder }) {
         const ports = (s.ports || []).filter((p) => p.host && p.container)
 
         return (
-          <div className={`conteneur conteneur-${teinte}`} key={s.id}>
+          <div className={`conteneur conteneur-${teinte} ${s.id === idEnEdition ? 'conteneur-en-edition' : ''}`} key={s.id}>
             <div className="conteneur-embout" />
             <div className="conteneur-corps">
               <div className="conteneur-entete">
@@ -67,6 +67,9 @@ function ServiceList({ services, onRemove, onDuplicate, onReorder }) {
                     onClick={() => onReorder(i, i + 1)}
                   >▼</button>
                 </>
+              )}
+              {onEdit && (
+                <button className="btn-icone" title="Modifier" onClick={() => onEdit(s.id)}>✎</button>
               )}
               <button className="btn-icone" title="Dupliquer" onClick={() => onDuplicate(s.id)}>⧉</button>
               <button className="btn-icone btn-danger" title="Supprimer" onClick={() => onRemove(s.id)}>✕</button>

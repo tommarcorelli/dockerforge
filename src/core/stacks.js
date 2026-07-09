@@ -1,6 +1,8 @@
 // stacks.js — combos de services prêts à charger en un clic
 // Chaque stack décrit plusieurs services liés (dépendances, réseau logique)
 
+import { healthcheckSuggere } from './catalogue.js'
+
 export const STACKS = [
   {
     id: 'lamp',
@@ -1033,7 +1035,7 @@ export function construireStack(stack, portsUtilisesInitial) {
       env: s.env && s.env.length > 0 ? s.env : [{ key: '', value: '' }],
       restart: 'unless-stopped',
       dependsOn: s.dependsOn || [],
-      healthcheck: { enabled: false, test: '', interval: '30s', timeout: '5s', retries: 3 },
+      healthcheck: { enabled: false, test: healthcheckSuggere(s.image), interval: '30s', timeout: '5s', retries: 3 },
       memLimit: '',
       cpus: '',
     }

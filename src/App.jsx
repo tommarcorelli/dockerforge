@@ -24,6 +24,7 @@ function App() {
   const [guideUtilisationOuvert, setGuideUtilisationOuvert] = useState(false)
   const [guideInstallationOuvert, setGuideInstallationOuvert] = useState(false)
   const [ongletActif, setOngletActif] = useState('services')
+  const [serviceEnEditionId, setServiceEnEditionId] = useState(null)
   const [theme, setTheme] = useState(() => localStorage.getItem('dockerforge_theme') || 'clair')
 
   useEffect(() => {
@@ -41,6 +42,12 @@ function App() {
   useEffect(() => {
     sauvegarderProjets(etat)
   }, [etat])
+
+  // Quitte le mode édition si on change de projet (un service d'un autre
+  // projet n'a pas de sens à modifier dans le formulaire actuel).
+  useEffect(() => {
+    setServiceEnEditionId(null)
+  }, [projetActif.id])
 
   // Applique un patch (objet ou fonction) au projet actuellement actif
   function patcherProjetActif(patch) {
@@ -115,7 +122,7 @@ function App() {
     if (!fichier) return
     const lecteur = new FileReader()
     lecteur.onload = () => {
-      const { services: importes, erreurs } = importerDockerCompose(lecteur.result)
+      const { services: importes, networks: networksImportes, erreurs } = importerDockerCompose(lecteur.result)
       setErreursImport(erreurs)
       if (importes.length > 0) {
         patcherProjetActif((p) => {
@@ -129,7 +136,12 @@ function App() {
           for (const s of ajustes) {
             for (const port of s.ports) if (port.host) utilises.add(Number(port.host))
           }
-          return { services: [...p.services, ...ajustes] }
+          // Les réseaux importés qui n'existent pas déjà dans ce projet sont
+          // ajoutés ; ceux qui portent un nom déjà utilisé gardent la
+          // définition existante du projet (on ne l'écrase pas).
+          const nomsExistants = new Set(p.networks.map((n) => n.nom))
+          const nouveauxReseaux = (networksImportes || []).filter((n) => !nomsExistants.has(n.nom))
+          return { services: [...p.services, ...ajustes], networks: [...p.networks, ...nouveauxReseaux] }
         })
       }
     }
@@ -145,6 +157,22 @@ function App() {
 
   function supprimerService(id) {
     patcherProjetActif((p) => ({ services: p.services.filter((s) => s.id !== id) }))
+    if (id === serviceEnEditionId) setServiceEnEditionId(null)
+  }
+
+  function demarrerEdition(id) {
+    setServiceEnEditionId(id)
+  }
+
+  function annulerEdition() {
+    setServiceEnEditionId(null)
+  }
+
+  function modifierService(serviceModifie) {
+    patcherProjetActif((p) => ({
+      services: p.services.map((s) => (s.id === serviceEnEditionId ? { ...serviceModifie, id: s.id } : s)),
+    }))
+    setServiceEnEditionId(null)
   }
 
   function dupliquerService(id) {
@@ -343,6 +371,9 @@ function App() {
                 servicesExistants={services.map((s) => s.name).filter(Boolean)}
                 servicesActuels={services}
                 networksDisponibles={networks}
+                serviceAEditer={services.find((s) => s.id === serviceEnEditionId) || null}
+                onUpdate={modifierService}
+                onAnnulerEdition={annulerEdition}
               />
             </div>
 
@@ -361,6 +392,8 @@ function App() {
                 onRemove={supprimerService}
                 onDuplicate={dupliquerService}
                 onReorder={reordonnerServices}
+                onEdit={demarrerEdition}
+                idEnEdition={serviceEnEditionId}
               />
             </div>
           </>
