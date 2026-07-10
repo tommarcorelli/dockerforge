@@ -5,10 +5,30 @@ import Icon from './Icon.jsx'
 // Liste des services ajoutés, sous forme de cartes
 // signature de DockerForge : chaque service = un conteneur maritime avec son
 // numéro, sa teinte de catégorie, et sa texture ondulée.
-function ServiceList({ services, onRemove, onDuplicate, onReorder, onEdit, idEnEdition }) {
+function ServiceList({ services, onRemove, onDuplicate, onReorder, onEdit, idEnEdition, onEnregistrerModele }) {
   const [recherche, setRecherche] = useState('')
   const [indexGlisse, setIndexGlisse] = useState(null)
   const [indexSurvole, setIndexSurvole] = useState(null)
+  const [copieId, setCopieId] = useState(null)
+  const [modeleEnNommageId, setModeleEnNommageId] = useState(null)
+  const [brouillonNomModele, setBrouillonNomModele] = useState('')
+
+  function demarrerNommageModele(s) {
+    setModeleEnNommageId(s.id)
+    setBrouillonNomModele(s.name || '')
+  }
+
+  function validerNommageModele(s) {
+    if (brouillonNomModele.trim()) onEnregistrerModele(s, brouillonNomModele.trim())
+    setModeleEnNommageId(null)
+  }
+
+  function copierEnJSON(s) {
+    const { id, ...donnees } = s
+    navigator.clipboard.writeText(JSON.stringify(donnees, null, 2))
+    setCopieId(s.id)
+    setTimeout(() => setCopieId((c) => (c === s.id ? null : c)), 1500)
+  }
 
   if (services.length === 0) {
     return (
@@ -137,6 +157,28 @@ function ServiceList({ services, onRemove, onDuplicate, onReorder, onEdit, idEnE
                     <button className="btn-icone" title="Modifier" onClick={() => onEdit(s.id)}>✎</button>
                   )}
                   <button className="btn-icone" title="Dupliquer" onClick={() => onDuplicate(s.id)}>⧉</button>
+                  <button className="btn-icone" title="Copier en JSON" onClick={() => copierEnJSON(s)}>
+                    {copieId === s.id ? '✓' : '📋'}
+                  </button>
+                  {onEnregistrerModele && (
+                    modeleEnNommageId === s.id ? (
+                      <form
+                        className="modele-nommage"
+                        onSubmit={(e) => { e.preventDefault(); validerNommageModele(s) }}
+                      >
+                        <input
+                          autoFocus
+                          value={brouillonNomModele}
+                          onChange={(e) => setBrouillonNomModele(e.target.value)}
+                          onBlur={() => validerNommageModele(s)}
+                          onKeyDown={(e) => e.key === 'Escape' && setModeleEnNommageId(null)}
+                          placeholder="nom du modèle"
+                        />
+                      </form>
+                    ) : (
+                      <button className="btn-icone" title="Enregistrer comme modèle" onClick={() => demarrerNommageModele(s)}>★</button>
+                    )
+                  )}
                   <button className="btn-icone btn-danger" title="Supprimer" onClick={() => onRemove(s.id)}>✕</button>
                 </div>
               </div>

@@ -47,6 +47,7 @@ dockerforge/
 │   │   ├── Preview.jsx              aperçu du docker-compose.yml + export .zip
 │   │   ├── ImageCatalog.jsx         catalogue d'images cliquables + recherche
 │   │   ├── StackPresets.jsx         stacks prêtes à charger en un clic
+│   │   ├── MesModeles.jsx           modèles de service personnels réutilisables
 │   │   ├── NetworkManager.jsx       création/suppression de réseaux Docker
 │   │   ├── ProjectManager.jsx       gestion de plusieurs projets (onglets de projets)
 │   │   ├── SchemaNavire.jsx         schéma visuel du "navire" (vue d'ensemble des conteneurs/réseaux)
@@ -55,10 +56,12 @@ dockerforge/
 │   │   ├── Aide.jsx                 bulle d'aide ⓘ réutilisable (tooltip)
 │   │   └── Icon.jsx                 rendu d'icônes simple-icons (logo Docker...)
 │   ├── core/
-│   │   ├── generateur.js            construction + validation du YAML, extraction des secrets
+│   │   ├── generateur.js            construction + validation du YAML, extraction des secrets, export docker run
+│   │   ├── surlignageYaml.js        coloration syntaxique légère de l'aperçu YAML
 │   │   ├── catalogue.js             images populaires, résolution de ports, healthchecks suggérés
 │   │   ├── stacks.js                combos de services (LAMP, WordPress...)
 │   │   ├── importateur.js           lecture d'un docker-compose.yml existant pour l'éditer
+│   │   ├── modeles.js                modèles de service réutilisables (localStorage, partagés entre projets)
 │   │   └── projets.js               gestion de plusieurs projets (stockage, création, etc.)
 │   ├── styles/
 │   │   └── index.css                identité visuelle claire, façon dashboard moderne
@@ -84,6 +87,9 @@ dockerforge/
 - 3 niveaux de complexité : champs essentiels toujours visibles (nom, image,
   ports), "Volumes et variables d'environnement" repliable, "Options avancées"
   repliable (redémarrage, dépendances, réseaux, profils, santé, ressources).
+- **Édition en place** d'un service déjà ajouté (bouton ✎), plutôt que de devoir
+  le supprimer et le recréer — le renommage propage automatiquement les
+  `depends_on` des autres services qui le référençaient.
 - **Bulles d'aide ⓘ** sur chaque champ, pensées pour quelqu'un qui débute avec Docker.
 - Catalogue d'images cliquables **avec barre de recherche**, groupé par
   catégorie — pré-remplit image, nom suggéré, port par défaut, variables
@@ -113,15 +119,23 @@ dockerforge/
   - *Communication/outils* : n8n, Mattermost, Wiki.js, BookStack, Mailpit,
     Meilisearch, WireGuard Easy, Keycloak, Portainer, Redis+RedisInsight,
     Miniflux, Shlink.
-- Import d'un `docker-compose.yml` existant pour l'éditer visuellement.
+- Import d'un `docker-compose.yml` existant pour l'éditer visuellement,
+  réseaux et profils de chaque service compris.
 
 **Sécurité**
 - Extraction des mots de passe/secrets vers des fichiers `.env` séparés, avec
   `.gitignore` généré automatiquement dans l'export.
+- Détection des secrets personnalisable par projet (liste noire : toujours
+  traiter comme secret ; liste blanche : ne jamais traiter comme secret).
 
 **Export**
 - Copier le YAML, télécharger le `docker-compose.yml` seul, ou un `.zip`
-  complet (compose + `.env.*` + `.gitignore` + `LANCEMENT.md`).
+  complet (compose + `.env.*` + `.gitignore` + `LANCEMENT.md` +
+  `dockerforge-run.sh`).
+- Onglet alternatif avec les commandes `docker run` équivalentes (utile sans
+  docker-compose), qui respecte aussi l'extraction des secrets.
+- Aperçu du YAML avec coloration syntaxique légère (clés, chaînes, nombres,
+  commentaires).
 
 **Aide intégrée**
 - Guide d'utilisation de l'outil et guide d'installation de Docker,
@@ -130,8 +144,19 @@ dockerforge/
   repliable.
 
 **Confort**
-- Duplication et réordonnancement des conteneurs.
-- Validation en direct (erreurs bloquantes + avertissements).
+- Duplication et réordonnancement des conteneurs (flèches ▲▼ ou glisser-déposer).
+- Recherche dans la liste des conteneurs ajoutés (à partir de 5).
+- Annuler (↺) après suppression d'un conteneur ou "Tout effacer", pendant
+  quelques secondes.
+- **Modèles de service réutilisables** (★) : enregistre un conteneur configuré
+  pour le réutiliser en un clic dans n'importe quel projet — partagés entre
+  tous les projets, contrairement aux stacks qui sont fixes.
+- Copier un service seul en JSON (indépendamment de l'export complet du projet).
+- Export/import d'un projet complet en JSON (services, réseaux, réglages),
+  indépendamment du `docker-compose.yml` — pratique pour sauvegarder ou
+  transférer un projet tel quel.
+- Validation en direct (erreurs bloquantes + avertissements), y compris la
+  détection de dépendances invalides (auto-référence, service inexistant).
 - Sauvegarde automatique dans le navigateur (localStorage), par projet.
 - **Thème clair (par défaut) / sombre** basculable en un clic (bouton dans
   l'en-tête), préférence mémorisée.
@@ -140,7 +165,8 @@ dockerforge/
 
 ## Idées de suites possibles
 
-- [ ] Détection de secrets plus fine (liste blanche/noire personnalisable).
+_Aucune pour l'instant — la détection de secrets personnalisable (liste
+blanche/noire) a été réalisée, voir Correctifs récents._
 
 ## Correctifs récents
 

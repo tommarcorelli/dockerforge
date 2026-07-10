@@ -123,6 +123,20 @@ test('avertit si aucun volume défini', () => {
   assert(avertissements.some((a) => a.includes('aucun volume')), 'devrait avertir sur le volume manquant')
 })
 
+test('avertit sur une image sans version figée (tag latest implicite ou explicite)', () => {
+  const { avertissements: a1 } = validerServices([serviceBase({ volumes: ['/data'], image: 'nginx' })])
+  assert(a1.some((a) => a.includes('version figée')), 'devrait avertir quand il n\'y a aucun tag')
+
+  const { avertissements: a2 } = validerServices([serviceBase({ volumes: ['/data'], image: 'nginx:latest' })])
+  assert(a2.some((a) => a.includes('latest')), 'devrait avertir sur le tag "latest" explicite')
+
+  const { avertissements: a3 } = validerServices([serviceBase({ volumes: ['/data'], image: 'nginx:1.25' })])
+  assert(!a3.some((a) => a.includes('version figée') || a.includes('latest')), 'ne devrait rien dire pour un tag précis')
+
+  const { avertissements: a4 } = validerServices([serviceBase({ volumes: ['/data'], image: 'registry.local:5000/app:2.0' })])
+  assert(!a4.some((a) => a.includes('version figée')), 'ne doit pas confondre le port du registre avec un tag absent')
+})
+
 test('un service valide ne remonte aucune erreur', () => {
   const { valide, erreurs } = validerServices([serviceBase()])
   assert(valide === true, `devrait être valide, erreurs: ${erreurs.join(', ')}`)
@@ -154,6 +168,17 @@ test('grouperParReseau met les services sans réseau dans le groupe par défaut'
   const services = [serviceBase({ name: 'web', networks: [] })]
   const groupes = grouperParReseau(services, [])
   assert(groupes.length === 1 && groupes[0].defaut === true, 'devrait créer un seul groupe par défaut')
+})
+
+test("grouperParReseau ne fait apparaître un service qu'une seule fois même sur plusieurs réseaux", () => {
+  const services = [
+    serviceBase({ name: 'web', networks: ['frontend', 'backend'] }),
+    serviceBase({ name: 'db', networks: ['backend'] }),
+  ]
+  const networks = [{ nom: 'frontend' }, { nom: 'backend' }]
+  const groupes = grouperParReseau(services, networks)
+  const occurrences = groupes.filter((g) => g.services.some((s) => s.name === 'web')).length
+  assert(occurrences === 1, `"web" devrait apparaître dans 1 groupe, trouvé dans ${occurrences}`)
 })
 
 test('calculerCharge compte les services avec limites définies', () => {

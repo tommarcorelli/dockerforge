@@ -1035,6 +1035,8 @@ export function construireStack(stack, portsUtilisesInitial) {
       env: s.env && s.env.length > 0 ? s.env : [{ key: '', value: '' }],
       restart: 'unless-stopped',
       dependsOn: s.dependsOn || [],
+      networks: s.networks || [],
+      profiles: s.profiles || [],
       healthcheck: { enabled: false, test: healthcheckSuggere(s.image), interval: '30s', timeout: '5s', retries: 3 },
       memLimit: '',
       cpus: '',

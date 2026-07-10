@@ -7,7 +7,11 @@ export function grouperParReseau(services, networks) {
   const dejaGroupes = new Set()
 
   for (const reseau of networks || []) {
-    const membres = services.filter((s) => (s.networks || []).includes(reseau.nom))
+    // Un service sur plusieurs réseaux ne doit apparaître qu'une seule fois
+    // dans le schéma (dans le premier réseau qui le concerne) — sinon sa
+    // position se retrouve écrasée entre deux groupes qui le réclament tous
+    // les deux, ce qui fausse toute la mise en page.
+    const membres = services.filter((s) => !dejaGroupes.has(s.name) && (s.networks || []).includes(reseau.nom))
     if (membres.length > 0) {
       groupes.push({ nom: reseau.nom, defaut: false, services: membres })
       membres.forEach((s) => dejaGroupes.add(s.name))

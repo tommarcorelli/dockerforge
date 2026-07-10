@@ -978,6 +978,44 @@ button:active { transform: scale(0.97); }
 }
 .chip-supprimer:hover { color: var(--danger); }
 
+.mes-modeles { margin-top: 1.2rem; }
+.modeles-liste { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 0.6rem; }
+.modele-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  background: var(--panel-2);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 0.25rem 0.3rem 0.25rem 0.75rem;
+}
+.modele-chip:hover { border-color: var(--gold); }
+.modele-bouton {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  background: transparent;
+  border: 0;
+  color: var(--ink);
+  font-size: 0.85rem;
+  font-weight: 600;
+  padding: 0.1rem 0;
+}
+.modele-supprimer {
+  background: transparent;
+  border: 0;
+  color: var(--muted);
+  padding: 0 0.35rem;
+  font-size: 0.8rem;
+  border-radius: 999px;
+}
+.modele-supprimer:hover { color: var(--danger); }
+.modele-nommage input {
+  width: 130px;
+  font-size: 0.8rem;
+  padding: 0.3rem 0.5rem;
+}
+
 /* ---------- ONGLETS (Tabs) ---------- */
 .onglets {
   max-width: 1240px;

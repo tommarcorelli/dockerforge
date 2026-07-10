@@ -12,6 +12,8 @@ import { portsHoteUtilises, trouverPortLibre } from './core/catalogue.js'
 import { construireStack } from './core/stacks.js'
 import { importerDockerCompose } from './core/importateur.js'
 import { chargerProjets, sauvegarderProjets, projetVide, exporterProjet, importerProjet } from './core/projets.js'
+import { chargerModeles, ajouterModele, supprimerModele, instancierModele } from './core/modeles.js'
+import MesModeles from './components/MesModeles.jsx'
 import { siDocker } from 'simple-icons'
 import Icon from './components/Icon.jsx'
 import SchemaNavire from './components/SchemaNavire.jsx'
@@ -306,6 +308,24 @@ function App() {
     })
   }
 
+  const [modeles, setModeles] = useState(() => chargerModeles())
+
+  function enregistrerModele(service, nom) {
+    setModeles(ajouterModele(service, nom))
+  }
+
+  function supprimerModeleParId(id) {
+    setModeles(supprimerModele(id))
+  }
+
+  function chargerModeleDansProjet(modele) {
+    patcherProjetActif((p) => {
+      const utilises = portsHoteUtilises(p.services)
+      const nouveau = instancierModele(modele, utilises)
+      return { services: [...p.services, nouveau] }
+    })
+  }
+
   function reinitialiser() {
     if (services.length === 0) return
     const projetCourantId = etat.actifId
@@ -380,6 +400,36 @@ function App() {
     0
   )
 
+  function telechargerComposeRapide() {
+    if (services.length === 0) return
+    const blob = new Blob([yaml], { type: 'text/yaml' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = 'docker-compose.yml'
+    a.click()
+    URL.revokeObjectURL(url)
+  }
+
+  // Raccourcis clavier : Ctrl/Cmd+S télécharge le docker-compose.yml direct
+  // (sans avoir à aller cliquer dans l'onglet Aperçu), Échap annule l'édition
+  // en cours ou ferme un guide ouvert — dans cet ordre de priorité.
+  useEffect(() => {
+    function onKeyDown(e) {
+      const ctrlOuCmd = e.ctrlKey || e.metaKey
+      if (ctrlOuCmd && e.key.toLowerCase() === 's') {
+        e.preventDefault()
+        telechargerComposeRapide()
+      } else if (e.key === 'Escape') {
+        if (serviceEnEditionId) annulerEdition()
+        else if (guideUtilisationOuvert) setGuideUtilisationOuvert(false)
+        else if (guideInstallationOuvert) setGuideInstallationOuvert(false)
+      }
+    }
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+  }, [yaml, services.length, serviceEnEditionId, guideUtilisationOuvert, guideInstallationOuvert])
+
   return (
     <div className="app">
       <header className="hero">
@@ -449,6 +499,7 @@ function App() {
 
       <div className="stacks-bandeau">
         <StackPresets onCharger={chargerStack} />
+        <MesModeles modeles={modeles} onCharger={chargerModeleDansProjet} onSupprimer={supprimerModeleParId} />
         <div className="import-zone">
           <label className="btn-discret btn-import">
             📤 Importer un docker-compose.yml existant
@@ -535,6 +586,7 @@ function App() {
                 onReorder={reordonnerServices}
                 onEdit={demarrerEdition}
                 idEnEdition={serviceEnEditionId}
+                onEnregistrerModele={enregistrerModele}
               />
             </div>
           </>

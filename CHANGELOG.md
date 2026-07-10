@@ -30,6 +30,65 @@ Résumé de tout ce qui a été ajouté/corrigé, dans l'ordre.
 - Guides intégrés (installation Docker, mode d'emploi de l'outil)
 
 ## Correctifs récents
+
+- **Édition en place d'un service** : ajoutée (bouton ✎ dans la liste). En
+  corrigeant les effets de bord : le service en cours d'édition ne pouvait
+  plus se sélectionner lui-même comme dépendance ni se voir imposer un faux
+  conflit de port sur son propre port ; renommer un service propage
+  maintenant le nouveau nom dans les `depends_on` des autres services.
+- **Healthcheck jamais rempli** : corrigé — 7 images du catalogue (MySQL,
+  PostgreSQL, MariaDB, MongoDB, Redis, RabbitMQ, Elasticsearch) proposent
+  désormais une commande de healthcheck fiable, reprise aussi par les stacks.
+- **Import docker-compose.yml perdait réseaux et profils** : corrigé — les
+  sections `networks:`/`profiles:` de chaque service et les réseaux définis
+  en haut du fichier sont maintenant reconstruits à l'import.
+- **Recherche dans la liste des conteneurs** : ajoutée, à partir de 5 conteneurs.
+- **Annuler (undo) après suppression** : ajouté pour la suppression d'un
+  conteneur et pour "Tout effacer" (remplace l'ancien `confirm()` bloquant).
+  Corrigé au passage : un conteneur ajouté entre le "Tout effacer" et le
+  clic sur "Annuler" ne disparaît plus.
+- **Export/import JSON complet d'un projet** : ajouté (bouton dans la barre de
+  gestion des projets), pour sauvegarder/transférer un projet indépendamment
+  du `docker-compose.yml`.
+- **Nettoyage de la racine du dépôt** : suppression de résidus de build qui
+  traînaient en double avec `public/` (`assets/`, `icons/`, `manifest.webmanifest`,
+  `sw.js`) et du `yarn.lock` superflu (le projet utilise `npm`). Suppression
+  aussi de `GuideModal.jsx`, un composant devenu mort après son remplacement
+  par `GuideUtilisationModal.jsx`/`GuideInstallationModal.jsx`.
+- **Coloration syntaxique de l'aperçu YAML** : ajoutée (clés, chaînes,
+  nombres, booléens, commentaires), sans dépendance externe.
+- **Incohérence de détection des secrets** : corrigée — `APP_KEY`/`SSH_KEY`
+  déclenchaient le générateur de mot de passe 🎲 dans le formulaire sans être
+  reconnus par le générateur de YAML (donc jamais extraits dans un `.env`
+  malgré "Extraire les secrets" activé). Détection unifiée sur une seule
+  fonction, désormais personnalisable par projet (liste blanche/noire).
+- **Export en commandes `docker run`** : ajouté (onglet dans l'aperçu), avec
+  gestion de l'ordre de démarrage en commentaire, des réseaux multiples via
+  `docker network connect`, et de l'extraction des secrets vers `--env-file`.
+- **Vrai glisser-déposer** pour réordonner les conteneurs (poignée ⠿),
+  en complément des flèches ▲▼ existantes.
+- **Services générés par une stack sans `networks`/`profiles`** : corrigé
+  (incohérence de forme avec les services créés à la main — sans effet
+  visible actuellement grâce aux protections existantes ailleurs, mais
+  corrigé par précaution).
+- **Schéma du navire faussé pour un service sur plusieurs réseaux** : corrigé
+  — un conteneur assigné à 2+ réseaux apparaissait dans chaque groupe
+  correspondant, ce qui écrasait sa position et faussait la taille des
+  groupes affichés. Il n'apparaît maintenant qu'une seule fois (dans le
+  premier réseau auquel il est assigné).
+- **Avertissement sur les images sans version figée** : ajouté — un tag
+  `:latest` (explicite ou implicite) déclenche un avertissement pour
+  encourager à figer une version précise avant de déployer.
+- **Raccourcis clavier** : `Ctrl+S`/`Cmd+S` télécharge directement le
+  `docker-compose.yml` depuis n'importe quel onglet ; `Échap` annule
+  l'édition d'un service en cours ou ferme un guide ouvert.
+- **Copier un service seul en JSON** : bouton 📋 sur chaque conteneur, pour
+  le recoller ailleurs (autre projet, note...) sans passer par l'export
+  complet du projet.
+- **Modèles de service réutilisables** : bouton ★ sur chaque conteneur pour
+  l'enregistrer comme modèle personnel (nommé), réutilisable en un clic dans
+  n'importe quel projet (section "Mes modèles", partagée entre tous les
+  projets — contrairement aux stacks qui sont fixes).
 - **Port bloqué en cliquant plusieurs images du catalogue** : corrigé — le port
   se met à jour à chaque clic tant qu'il n'a pas été modifié à la main.
 - **Bulle d'aide pour les clés type `APP_KEY`** : ajoutée — explique que ce

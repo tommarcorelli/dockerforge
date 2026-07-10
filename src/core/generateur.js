@@ -21,6 +21,17 @@ export const POLITIQUES_RESTART = [
   { valeur: 'no', label: 'Jamais' },
 ]
 
+// Extrait le tag d'une image Docker ("nginx:1.25" -> "1.25"), en tenant
+// compte d'un éventuel registre privé avec port ("registry.local:5000/app").
+// Renvoie null si aucun tag n'est précisé (donc "latest" implicite).
+function tagImage(image) {
+  const img = String(image || '').trim()
+  const derniereSlash = img.lastIndexOf('/')
+  const dernierSegment = derniereSlash === -1 ? img : img.slice(derniereSlash + 1)
+  const idx = dernierSegment.indexOf(':')
+  return idx === -1 ? null : dernierSegment.slice(idx + 1)
+}
+
 // Détecte si une clé de variable d'env ressemble à un secret (mot de passe,
 // token, clé applicative...). `options.exclusions` (liste blanche) est
 // prioritaire sur tout : une clé qui y figure n'est jamais traitée comme un
@@ -351,6 +362,16 @@ export function validerServices(services, options = {}) {
     if (motsDePasseParDefaut.length > 0) {
       avertissements.push(
         `Le service "${label}" utilise encore la valeur par défaut "change_moi" pour ${motsDePasseParDefaut.map((e) => e.key).join(', ')} — génère un vrai mot de passe avant de déployer.`
+      )
+    }
+
+    if (service.image && tagImage(service.image) === null) {
+      avertissements.push(
+        `Le service "${label}" utilise l'image "${service.image}" sans version figée (tag implicite "latest") — précise une version (ex: "${service.image}:1.2.3") pour des déploiements reproductibles.`
+      )
+    } else if (service.image && tagImage(service.image) === 'latest') {
+      avertissements.push(
+        `Le service "${label}" utilise explicitement le tag "latest" — pratique pour tester, mais déconseillé en production car la version peut changer sans prévenir.`
       )
     }
   })
