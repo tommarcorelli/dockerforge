@@ -1108,6 +1108,231 @@ export const STACKS = [
       },
     ],
   },
+  {
+    id: 'authentification',
+    nom: 'Authentification centralisée',
+    description: 'Authelia + Redis — SSO / 2FA devant vos services derrière un reverse proxy',
+    services: [
+      {
+        name: 'authelia', image: 'authelia/authelia:latest', ports: [{ host: 9091, container: 9091 }],
+        volumes: ['./authelia-config:/config'], env: [], dependsOn: ['redis'],
+      },
+      {
+        name: 'redis', image: 'redis:latest', ports: [],
+        volumes: ['./data-redis:/data'], env: [], dependsOn: [],
+      },
+    ],
+  },
+  {
+    id: 'vault',
+    nom: 'Coffre-fort de secrets (Vault)',
+    description: 'HashiCorp Vault en mode dev — stockage centralisé de secrets',
+    services: [
+      {
+        name: 'vault', image: 'hashicorp/vault:latest', ports: [{ host: 8200, container: 8200 }],
+        volumes: ['./vault-data:/vault/data'],
+        env: [{ key: 'VAULT_DEV_ROOT_TOKEN_ID', value: 'change_moi' }],
+        dependsOn: [],
+      },
+    ],
+  },
+  {
+    id: 'rocketchat',
+    nom: 'Chat interne (Rocket.Chat)',
+    description: 'Rocket.Chat + MongoDB',
+    services: [
+      {
+        name: 'rocketchat', image: 'rocketchat/rocket.chat:latest', ports: [{ host: 3000, container: 3000 }],
+        volumes: ['./rocketchat-data:/app/uploads'],
+        env: [{ key: 'MONGO_URL', value: 'mongodb://mongo:27017/rocketchat' }],
+        dependsOn: ['mongo'],
+      },
+      {
+        name: 'mongo', image: 'mongo:latest', ports: [],
+        volumes: ['./data-mongo:/data/db'], env: [], dependsOn: [],
+      },
+    ],
+  },
+  {
+    id: 'discourse',
+    nom: 'Forum (Discourse)',
+    description: 'Discourse + PostgreSQL + Redis',
+    services: [
+      {
+        name: 'discourse', image: 'bitnami/discourse:latest', ports: [{ host: 3000, container: 3000 }],
+        volumes: ['./discourse-data:/bitnami/discourse'],
+        env: [
+          { key: 'DISCOURSE_DATABASE_HOST', value: 'db' },
+          { key: 'DISCOURSE_REDIS_HOST', value: 'redis' },
+        ],
+        dependsOn: ['db', 'redis'],
+      },
+      {
+        name: 'db', image: 'postgres:16', ports: [],
+        volumes: ['./discourse-db:/var/lib/postgresql/data'],
+        env: [{ key: 'POSTGRES_PASSWORD', value: 'change_moi' }, { key: 'POSTGRES_DB', value: 'discourse' }],
+        dependsOn: [],
+      },
+      {
+        name: 'redis', image: 'redis:latest', ports: [],
+        volumes: ['./data-redis:/data'], env: [], dependsOn: [],
+      },
+    ],
+  },
+  {
+    id: 'immich',
+    nom: 'Photos (Immich)',
+    description: 'Immich + PostgreSQL + Redis — sauvegarde et tri de vos photos/vidéos',
+    services: [
+      {
+        name: 'immich', image: 'ghcr.io/immich-app/immich-server:release', ports: [{ host: 2283, container: 2283 }],
+        volumes: ['./immich-data:/usr/src/app/upload'],
+        env: [{ key: 'DB_HOSTNAME', value: 'db' }, { key: 'REDIS_HOSTNAME', value: 'redis' }],
+        dependsOn: ['db', 'redis'],
+      },
+      {
+        name: 'db', image: 'postgres:16', ports: [],
+        volumes: ['./immich-db:/var/lib/postgresql/data'],
+        env: [{ key: 'POSTGRES_PASSWORD', value: 'change_moi' }, { key: 'POSTGRES_DB', value: 'immich' }],
+        dependsOn: [],
+      },
+      {
+        name: 'redis', image: 'redis:latest', ports: [],
+        volumes: [], env: [], dependsOn: [],
+      },
+    ],
+  },
+  {
+    id: 'paperless',
+    nom: 'GED documents (Paperless-ngx)',
+    description: 'Paperless-ngx + PostgreSQL + Redis — numérisation et classement de documents',
+    services: [
+      {
+        name: 'paperless', image: 'ghcr.io/paperless-ngx/paperless-ngx:latest', ports: [{ host: 8000, container: 8000 }],
+        volumes: ['./paperless-data:/usr/src/paperless/data', './paperless-media:/usr/src/paperless/media', './paperless-consume:/usr/src/paperless/consume'],
+        env: [{ key: 'PAPERLESS_REDIS', value: 'redis://redis:6379' }, { key: 'PAPERLESS_DBHOST', value: 'db' }],
+        dependsOn: ['db', 'redis'],
+      },
+      {
+        name: 'db', image: 'postgres:16', ports: [],
+        volumes: ['./paperless-db:/var/lib/postgresql/data'],
+        env: [{ key: 'POSTGRES_PASSWORD', value: 'change_moi' }, { key: 'POSTGRES_DB', value: 'paperless' }],
+        dependsOn: [],
+      },
+      {
+        name: 'redis', image: 'redis:latest', ports: [],
+        volumes: [], env: [], dependsOn: [],
+      },
+    ],
+  },
+  {
+    id: 'gitea',
+    nom: 'Git auto-hébergé (Gitea)',
+    description: 'Gitea + PostgreSQL — votre propre forge Git',
+    services: [
+      {
+        name: 'gitea', image: 'gitea/gitea:latest', ports: [{ host: 3000, container: 3000 }, { host: 2222, container: 22 }],
+        volumes: ['./gitea-data:/data'],
+        env: [{ key: 'GITEA__database__DB_TYPE', value: 'postgres' }, { key: 'GITEA__database__HOST', value: 'db:5432' }],
+        dependsOn: ['db'],
+      },
+      {
+        name: 'db', image: 'postgres:16', ports: [],
+        volumes: ['./gitea-db:/var/lib/postgresql/data'],
+        env: [{ key: 'POSTGRES_PASSWORD', value: 'change_moi' }, { key: 'POSTGRES_DB', value: 'gitea' }, { key: 'POSTGRES_USER', value: 'gitea' }],
+        dependsOn: [],
+      },
+    ],
+  },
+  {
+    id: 'ia-locale',
+    nom: 'IA locale (Ollama + Open WebUI)',
+    description: 'Modèles de langage exécutés localement, avec interface web type ChatGPT',
+    services: [
+      {
+        name: 'ollama', image: 'ollama/ollama:latest', ports: [{ host: 11434, container: 11434 }],
+        volumes: ['./ollama-data:/root/.ollama'], env: [], dependsOn: [],
+      },
+      {
+        name: 'open-webui', image: 'ghcr.io/open-webui/open-webui:main', ports: [{ host: 8080, container: 8080 }],
+        volumes: ['./open-webui-data:/app/backend/data'],
+        env: [{ key: 'OLLAMA_BASE_URL', value: 'http://ollama:11434' }],
+        dependsOn: ['ollama'],
+      },
+    ],
+  },
+  {
+    id: 'ghost-blog',
+    nom: 'Blog (Ghost)',
+    description: 'Ghost + MySQL',
+    services: [
+      {
+        name: 'ghost', image: 'ghost:5', ports: [{ host: 2368, container: 2368 }],
+        volumes: ['./ghost-content:/var/lib/ghost/content'],
+        env: [{ key: 'database__client', value: 'mysql' }, { key: 'database__connection__host', value: 'db' }],
+        dependsOn: ['db'],
+      },
+      {
+        name: 'db', image: 'mysql:8', ports: [],
+        volumes: ['./ghost-db:/var/lib/mysql'],
+        env: [{ key: 'MYSQL_ROOT_PASSWORD', value: 'change_moi' }, { key: 'MYSQL_DATABASE', value: 'ghost' }],
+        dependsOn: [],
+      },
+    ],
+  },
+  {
+    id: 'prestashop',
+    nom: 'E-commerce (PrestaShop)',
+    description: 'PrestaShop + MySQL',
+    services: [
+      {
+        name: 'prestashop', image: 'prestashop/prestashop:latest', ports: [{ host: 8080, container: 80 }],
+        volumes: ['./prestashop-data:/var/www/html'],
+        env: [{ key: 'DB_SERVER', value: 'db' }],
+        dependsOn: ['db'],
+      },
+      {
+        name: 'db', image: 'mysql:8', ports: [],
+        volumes: ['./prestashop-db:/var/lib/mysql'],
+        env: [{ key: 'MYSQL_ROOT_PASSWORD', value: 'change_moi' }, { key: 'MYSQL_DATABASE', value: 'prestashop' }],
+        dependsOn: [],
+      },
+    ],
+  },
+  {
+    id: 'odoo',
+    nom: 'ERP/CRM (Odoo)',
+    description: 'Odoo + PostgreSQL',
+    services: [
+      {
+        name: 'odoo', image: 'odoo:latest', ports: [{ host: 8069, container: 8069 }],
+        volumes: ['./odoo-data:/var/lib/odoo'],
+        env: [{ key: 'HOST', value: 'db' }],
+        dependsOn: ['db'],
+      },
+      {
+        name: 'db', image: 'postgres:16', ports: [],
+        volumes: ['./odoo-db:/var/lib/postgresql/data'],
+        env: [{ key: 'POSTGRES_PASSWORD', value: 'change_moi' }, { key: 'POSTGRES_USER', value: 'odoo' }, { key: 'POSTGRES_DB', value: 'postgres' }],
+        dependsOn: [],
+      },
+    ],
+  },
+  {
+    id: 'dashboard-maison',
+    nom: 'Dashboard maison',
+    description: 'Homepage + Uptime Kuma — vue d\'ensemble et supervision de vos services auto-hébergés',
+    services: [
+      {
+        name: 'homepage', image: 'ghcr.io/gethomepage/homepage:latest', ports: [{ host: 3000, container: 3000 }],
+        volumes: ['./homepage-config:/app/config'], env: [], dependsOn: [],
+      },
+      {
+        name: 'uptime-kuma', image: 'louislam/uptime-kuma:latest', ports: [{ host: 3001, container: 3001 }],
+        volumes: ['./uptime-kuma-data:/app/data'], env: [], dependsOn: [],
+      },
+    ],
+  },
 ]
 
 // Construit des objets service complets (avec id) à partir d'une stack,

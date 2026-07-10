@@ -6,10 +6,19 @@ import {
   siNginx, siApache, siCaddy, siTraefikproxy, siNginxproxymanager,
   siMysql, siPostgresql, siMongodb, siRedis, siMariadb, siInfluxdb, siNeo4j, siSqlite, siCockroachlabs,
   siNodedotjs, siPython, siPhp, siDjango, siFlask, siLaravel, siSymfony, siRubyonrails, siGo, siRust, siDotnet, siOpenjdk, siSpring,
-  siGrafana, siPrometheus, siPortainer, siKibana,
+  siGrafana, siPrometheus, siPortainer, siKibana, siUptimekuma, siNetdata,
   siRabbitmq, siElasticsearch, siApachekafka,
   siWordpress, siAdminer, siPhpmyadmin, siMinio, siKeycloak, siJenkins, siNextcloud, siVaultwarden, siGitlab, siSonarqube, siJupyter,
   siPihole, siPocketbase, siStrapi, siDirectus, siN8n, siHomeassistant, siPlex, siJellyfin,
+  siRocketdotchat, siDiscourse, siMattermost, siGhost,
+  siAuthelia, siVault, siTailscale, siWireguard,
+  siOwncloud, siDuplicati, siRclone, siSyncthing,
+  siTrilium, siOutline, siWikidotjs, siBookstack,
+  siImmich, siPaperlessngx, siCalibreweb,
+  siBaserow, siMetabase, siUmami, siMatomo,
+  siPrestashop, siOdoo,
+  siGitea, siHomepage, siGrocy,
+  siOllama,
 } from 'simple-icons'
 
 export const CATALOGUE = [
@@ -79,6 +88,8 @@ export const CATALOGUE = [
       { nom: 'Prometheus', image: 'prom/prometheus:latest', portDefaut: 9090, suggestionNom: 'prometheus', envDefaut: [], icone: siPrometheus },
       { nom: 'Portainer', image: 'portainer/portainer-ce:latest', portDefaut: 9000, suggestionNom: 'portainer', envDefaut: [], icone: siPortainer },
       { nom: 'Kibana', image: 'kibana:8.15.0', portDefaut: 5601, suggestionNom: 'kibana', envDefaut: [], icone: siKibana },
+      { nom: 'Uptime Kuma', image: 'louislam/uptime-kuma:latest', portDefaut: 3001, suggestionNom: 'uptime-kuma', envDefaut: [], icone: siUptimekuma },
+      { nom: 'Netdata', image: 'netdata/netdata:latest', portDefaut: 19999, suggestionNom: 'netdata', envDefaut: [], icone: siNetdata },
     ],
   },
   {
@@ -125,6 +136,16 @@ export const CATALOGUE = [
       { nom: 'CrowdSec', image: 'crowdsecurity/crowdsec:latest', portDefaut: 8080, suggestionNom: 'crowdsec', envDefaut: [
         { key: 'COLLECTIONS', value: 'crowdsecurity/nginx crowdsecurity/sshd' },
       ] },
+      { nom: 'Gitea', image: 'gitea/gitea:latest', portDefaut: 3000, suggestionNom: 'gitea', envDefaut: [], icone: siGitea },
+      { nom: 'Homepage (dashboard)', image: 'ghcr.io/gethomepage/homepage:latest', portDefaut: 3000, suggestionNom: 'homepage', envDefaut: [], icone: siHomepage },
+      { nom: 'Grocy', image: 'linuxserver/grocy:latest', portDefaut: 80, suggestionNom: 'grocy', envDefaut: [], icone: siGrocy },
+      { nom: 'Umami (analytics)', image: 'ghcr.io/umami-software/umami:postgresql-latest', portDefaut: 3000, suggestionNom: 'umami', envDefaut: [
+        { key: 'DATABASE_URL', value: 'postgresql://umami:change_moi@db:5432/umami' },
+        { key: 'APP_SECRET', value: 'change_moi' },
+      ], icone: siUmami },
+      { nom: 'Matomo (analytics)', image: 'matomo:latest', portDefaut: 80, suggestionNom: 'matomo', envDefaut: [
+        { key: 'MATOMO_DATABASE_HOST', value: 'db' },
+      ], icone: siMatomo },
     ],
   },
   {
@@ -141,6 +162,18 @@ export const CATALOGUE = [
       { nom: 'Home Assistant', image: 'homeassistant/home-assistant:latest', portDefaut: 8123, suggestionNom: 'homeassistant', envDefaut: [], icone: siHomeassistant },
       { nom: 'Plex', image: 'plexinc/pms-docker:latest', portDefaut: 32400, suggestionNom: 'plex', envDefaut: [], icone: siPlex },
       { nom: 'Jellyfin', image: 'jellyfin/jellyfin:latest', portDefaut: 8096, suggestionNom: 'jellyfin', envDefaut: [], icone: siJellyfin },
+      { nom: 'Mealie (recettes)', image: 'ghcr.io/mealie-recipes/mealie:latest', portDefaut: 9000, suggestionNom: 'mealie', envDefaut: [], icone: null },
+      { nom: 'Shlink (raccourcisseur URL)', image: 'ghcr.io/shlinkio/shlink:latest', portDefaut: 8080, suggestionNom: 'shlink', envDefaut: [
+        { key: 'DEFAULT_DOMAIN', value: 'localhost' },
+      ], icone: null },
+      { nom: 'Miniflux (flux RSS)', image: 'miniflux/miniflux:latest', portDefaut: 8080, suggestionNom: 'miniflux', envDefaut: [
+        { key: 'DATABASE_URL', value: 'postgres://miniflux:change_moi@db/miniflux?sslmode=disable' },
+        { key: 'RUN_MIGRATIONS', value: '1' },
+        { key: 'ADMIN_USERNAME', value: 'admin' },
+        { key: 'ADMIN_PASSWORD', value: 'change_moi' },
+      ], icone: null },
+      { nom: 'Linkding (marque-pages)', image: 'sissbruecker/linkding:latest', portDefaut: 9090, suggestionNom: 'linkding', envDefaut: [], icone: null },
+      { nom: 'Changedetection.io', image: 'ghcr.io/dgtlmoon/changedetection.io:latest', portDefaut: 5000, suggestionNom: 'changedetection', envDefaut: [], icone: null },
     ],
   },
   {
@@ -173,6 +206,115 @@ export const CATALOGUE = [
       { nom: 'GLPI', image: 'diouxx/glpi:latest', portDefaut: 80, suggestionNom: 'glpi', envDefaut: [
         { key: 'TIMEZONE', value: 'Europe/Paris' },
       ] },
+      { nom: 'Authelia', image: 'authelia/authelia:latest', portDefaut: 9091, suggestionNom: 'authelia', envDefaut: [], icone: siAuthelia },
+      { nom: 'HashiCorp Vault', image: 'hashicorp/vault:latest', portDefaut: 8200, suggestionNom: 'vault', envDefaut: [
+        { key: 'VAULT_DEV_ROOT_TOKEN_ID', value: 'change_moi' },
+      ], icone: siVault },
+      { nom: 'Tailscale', image: 'tailscale/tailscale:latest', portDefaut: 41641, suggestionNom: 'tailscale', envDefaut: [
+        { key: 'TS_AUTHKEY', value: 'change_moi' },
+      ], icone: siTailscale },
+      { nom: 'WireGuard Easy', image: 'ghcr.io/wg-easy/wg-easy:latest', portDefaut: 51821, suggestionNom: 'wg-easy', envDefaut: [
+        { key: 'PASSWORD', value: 'change_moi' },
+      ], icone: siWireguard },
+    ],
+  },
+  {
+    categorie: 'Collaboration & communication',
+    teinte: 'cyan',
+    images: [
+      { nom: 'Rocket.Chat', image: 'rocketchat/rocket.chat:latest', portDefaut: 3000, suggestionNom: 'rocketchat', envDefaut: [
+        { key: 'MONGO_URL', value: 'mongodb://mongo:27017/rocketchat' },
+      ], icone: siRocketdotchat },
+      { nom: 'Mattermost', image: 'mattermost/mattermost-team-edition:latest', portDefaut: 8065, suggestionNom: 'mattermost', envDefaut: [], icone: siMattermost },
+      { nom: 'Discourse', image: 'bitnami/discourse:latest', portDefaut: 3000, suggestionNom: 'discourse', envDefaut: [
+        { key: 'DISCOURSE_DATABASE_HOST', value: 'db' },
+        { key: 'DISCOURSE_REDIS_HOST', value: 'redis' },
+      ], icone: siDiscourse },
+      { nom: 'Ghost (blog)', image: 'ghost:5', portDefaut: 2368, suggestionNom: 'ghost', envDefaut: [
+        { key: 'database__client', value: 'mysql' },
+        { key: 'database__connection__host', value: 'db' },
+      ], icone: siGhost },
+    ],
+  },
+  {
+    categorie: 'Stockage & sauvegarde',
+    teinte: 'steel',
+    images: [
+      { nom: 'ownCloud', image: 'owncloud/server:latest', portDefaut: 8080, suggestionNom: 'owncloud', envDefaut: [
+        { key: 'OWNCLOUD_DB_HOST', value: 'db' },
+      ], icone: siOwncloud },
+      { nom: 'Duplicati', image: 'duplicati/duplicati:latest', portDefaut: 8200, suggestionNom: 'duplicati', envDefaut: [], icone: siDuplicati },
+      { nom: 'Syncthing', image: 'syncthing/syncthing:latest', portDefaut: 8384, suggestionNom: 'syncthing', envDefaut: [], icone: siSyncthing },
+      { nom: 'Rclone (rcd)', image: 'rclone/rclone:latest', portDefaut: 5572, suggestionNom: 'rclone', envDefaut: [], icone: siRclone },
+    ],
+  },
+  {
+    categorie: 'Productivité & documentation',
+    teinte: 'cyan',
+    images: [
+      { nom: 'Wiki.js', image: 'requarks/wiki:latest', portDefaut: 3000, suggestionNom: 'wikijs', envDefaut: [
+        { key: 'DB_TYPE', value: 'postgres' },
+        { key: 'DB_HOST', value: 'db' },
+      ], icone: siWikidotjs },
+      { nom: 'BookStack', image: 'linuxserver/bookstack:latest', portDefaut: 80, suggestionNom: 'bookstack', envDefaut: [
+        { key: 'DB_HOST', value: 'db' },
+        { key: 'DB_PASSWORD', value: 'change_moi' },
+      ], icone: siBookstack },
+      { nom: 'Trilium Notes', image: 'zadam/trilium:latest', portDefaut: 8080, suggestionNom: 'trilium', envDefaut: [], icone: siTrilium },
+      { nom: 'Outline', image: 'outlinewiki/outline:latest', portDefaut: 3000, suggestionNom: 'outline', envDefaut: [
+        { key: 'SECRET_KEY', value: 'change_moi' },
+        { key: 'DATABASE_URL', value: 'postgres://outline:change_moi@db:5432/outline' },
+      ], icone: siOutline },
+    ],
+  },
+  {
+    categorie: 'Médias & documents',
+    teinte: 'jaune',
+    images: [
+      { nom: 'Immich (photos)', image: 'ghcr.io/immich-app/immich-server:release', portDefaut: 2283, suggestionNom: 'immich', envDefaut: [
+        { key: 'DB_HOSTNAME', value: 'db' },
+        { key: 'REDIS_HOSTNAME', value: 'redis' },
+      ], icone: siImmich },
+      { nom: 'Paperless-ngx', image: 'ghcr.io/paperless-ngx/paperless-ngx:latest', portDefaut: 8000, suggestionNom: 'paperless', envDefaut: [
+        { key: 'PAPERLESS_REDIS', value: 'redis://redis:6379' },
+        { key: 'PAPERLESS_DBHOST', value: 'db' },
+      ], icone: siPaperlessngx },
+      { nom: 'Calibre-Web', image: 'linuxserver/calibre-web:latest', portDefaut: 8083, suggestionNom: 'calibre-web', envDefaut: [], icone: siCalibreweb },
+    ],
+  },
+  {
+    categorie: 'No-code & data',
+    teinte: 'orange',
+    images: [
+      { nom: 'Baserow', image: 'baserow/baserow:latest', portDefaut: 80, suggestionNom: 'baserow', envDefaut: [], icone: siBaserow },
+      { nom: 'Metabase', image: 'metabase/metabase:latest', portDefaut: 3000, suggestionNom: 'metabase', envDefaut: [], icone: siMetabase },
+      { nom: 'NocoDB', image: 'nocodb/nocodb:latest', portDefaut: 8080, suggestionNom: 'nocodb', envDefaut: [], icone: null },
+      { nom: 'pgAdmin', image: 'dpage/pgadmin4:latest', portDefaut: 80, suggestionNom: 'pgadmin', envDefaut: [
+        { key: 'PGADMIN_DEFAULT_EMAIL', value: 'admin@example.com' },
+        { key: 'PGADMIN_DEFAULT_PASSWORD', value: 'change_moi' },
+      ], icone: null },
+    ],
+  },
+  {
+    categorie: 'E-commerce & ERP',
+    teinte: 'steel',
+    images: [
+      { nom: 'PrestaShop', image: 'prestashop/prestashop:latest', portDefaut: 80, suggestionNom: 'prestashop', envDefaut: [
+        { key: 'DB_SERVER', value: 'db' },
+      ], icone: siPrestashop },
+      { nom: 'Odoo', image: 'odoo:latest', portDefaut: 8069, suggestionNom: 'odoo', envDefaut: [
+        { key: 'HOST', value: 'db' },
+      ], icone: siOdoo },
+    ],
+  },
+  {
+    categorie: 'IA & automatisation',
+    teinte: 'jaune',
+    images: [
+      { nom: 'Ollama', image: 'ollama/ollama:latest', portDefaut: 11434, suggestionNom: 'ollama', envDefaut: [], icone: siOllama },
+      { nom: 'Open WebUI', image: 'ghcr.io/open-webui/open-webui:main', portDefaut: 8080, suggestionNom: 'open-webui', envDefaut: [
+        { key: 'OLLAMA_BASE_URL', value: 'http://ollama:11434' },
+      ], icone: null },
     ],
   },
 ]
