@@ -89,6 +89,31 @@ Résumé de tout ce qui a été ajouté/corrigé, dans l'ordre.
   l'enregistrer comme modèle personnel (nommé), réutilisable en un clic dans
   n'importe quel projet (section "Mes modèles", partagée entre tous les
   projets — contrairement aux stacks qui sont fixes).
+- **Suggestion de service manquant probable** : un bloc "💡 Suggestions"
+  (distinct des avertissements, volontairement moins insistant) propose
+  d'ajouter une base de données quand WordPress, Ghost, Gitea, Nextcloud,
+  Matomo, Redmine, BookStack ou Keycloak sont présents sans base de données
+  correspondante détectée dans le projet.
+- **Mini-audit sécurité** : panneau repliable dans l'aperçu (🛡), résumant
+  ports exposés, services sans healthcheck, secrets en clair, mots de passe
+  encore à "change_moi" et images sans version figée, avec un niveau global
+  (bon / à surveiller / à améliorer).
+- **Conflit entre l'Échap global et les champs de saisie en ligne** : corrigé
+  — annuler le nommage d'un modèle ou un renommage de projet via Échap
+  annulait aussi, en silence, l'édition d'un service en cours ailleurs sur la
+  page (l'événement remontait jusqu'au raccourci clavier global). Corrigé
+  avec `stopPropagation()`, plus une protection contre la course entre Échap
+  et le `blur` du champ (qui pouvait revalider avec l'ancienne saisie).
+- **5 nouveaux services/stacks orientés réseau & sécurité** (BTS SIO SISR) :
+  - Catalogue : Registre Docker privé (`registry:2`), CrowdSec.
+  - Nouvelle catégorie "Sécurité & annuaire" : OpenLDAP, phpLDAPadmin, Zabbix
+    (serveur + interface web), GLPI.
+  - Nouvelles stacks prêtes à charger : **Annuaire LDAP** (OpenLDAP +
+    phpLDAPadmin), **Supervision (Zabbix)** (serveur + web + PostgreSQL, choisi
+    plutôt que MySQL pour éviter les réglages de collation que l'outil ne
+    permet pas de configurer), **GLPI** (+ MariaDB — la BDD se relie via
+    l'assistant d'installation web de GLPI, pas d'auto-configuration par
+    variables d'env pour cette image).
 - **Port bloqué en cliquant plusieurs images du catalogue** : corrigé — le port
   se met à jour à chaque clic tant qu'il n'a pas été modifié à la main.
 - **Bulle d'aide pour les clés type `APP_KEY`** : ajoutée — explique que ce

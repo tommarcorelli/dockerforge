@@ -5,12 +5,13 @@ import Aide from './Aide.jsx'
 
 // Aperçu du docker-compose.yml généré, avec statut de validation
 function Preview({
-  yaml, dockerRunScript, envFiles, erreurs, avertissements, nbServices, extraireSecrets, onToggleSecrets,
+  yaml, dockerRunScript, envFiles, erreurs, avertissements, suggestions, audit, nbServices, extraireSecrets, onToggleSecrets,
   secretsInclus, secretsExclus, onAjouterInclusion, onSupprimerInclusion, onAjouterExclusion, onSupprimerExclusion,
 }) {
   const [copie, setCopie] = useState(false)
   const [vue, setVue] = useState('compose') // 'compose' | 'run'
   const [reglagesSecretsOuverts, setReglagesSecretsOuverts] = useState(false)
+  const [auditOuvert, setAuditOuvert] = useState(false)
   const [champInclusion, setChampInclusion] = useState('')
   const [champExclusion, setChampExclusion] = useState('')
   const pretAExpedier = nbServices > 0 && erreurs.length === 0
@@ -101,6 +102,37 @@ function Preview({
           {pretAExpedier ? 'PRÊT' : nbServices === 0 ? 'VIDE' : 'À CORRIGER'}
         </div>
       </div>
+
+      {audit && nbServices > 0 && (
+        <div className={`audit-securite audit-${audit.niveau}`}>
+          <button type="button" className="audit-entete" onClick={() => setAuditOuvert((o) => !o)}>
+            <span>🛡 Mini-audit sécurité</span>
+            <span className={`audit-niveau audit-niveau-${audit.niveau}`}>
+              {{ bon: 'Bon', moyen: 'À surveiller', a_ameliorer: 'À améliorer' }[audit.niveau]}
+            </span>
+            <span className="audit-chevron">{auditOuvert ? '▾' : '▸'}</span>
+          </button>
+          {auditOuvert && (
+            <ul className="audit-liste">
+              <li>
+                {audit.portsExposes} port{audit.portsExposes !== 1 ? 's' : ''} exposé{audit.portsExposes !== 1 ? 's' : ''} sur l'hôte
+              </li>
+              <li className={audit.servicesAvecHealthcheck === audit.totalServices ? 'audit-ok' : ''}>
+                {audit.servicesAvecHealthcheck}/{audit.totalServices} service{audit.totalServices !== 1 ? 's' : ''} avec un healthcheck activé
+              </li>
+              <li className={audit.secretsEnClair === 0 ? 'audit-ok' : 'audit-alerte'}>
+                {audit.secretsEnClair} secret{audit.secretsEnClair !== 1 ? 's' : ''} en clair dans le YAML
+              </li>
+              <li className={audit.motsDePasseParDefaut === 0 ? 'audit-ok' : 'audit-alerte'}>
+                {audit.motsDePasseParDefaut} mot{audit.motsDePasseParDefaut !== 1 ? 's' : ''} de passe encore à "change_moi"
+              </li>
+              <li className={audit.tagsNonFiges === 0 ? 'audit-ok' : ''}>
+                {audit.tagsNonFiges} image{audit.tagsNonFiges !== 1 ? 's' : ''} sans version figée (tag "latest")
+              </li>
+            </ul>
+          )}
+        </div>
+      )}
 
       <div className="apercu-onglets">
         <button
@@ -200,6 +232,15 @@ function Preview({
           <strong>Avertissements</strong>
           <ul>
             {avertissements.map((a, i) => <li key={i}>{a}</li>)}
+          </ul>
+        </div>
+      )}
+
+      {suggestions && suggestions.length > 0 && (
+        <div className="bloc-suggestions">
+          <strong>💡 Suggestions</strong>
+          <ul>
+            {suggestions.map((s, i) => <li key={i}>{s}</li>)}
           </ul>
         </div>
       )}

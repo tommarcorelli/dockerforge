@@ -1,9 +1,12 @@
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 
 // Barre de gestion multi-projets : changer, créer, renommer, dupliquer, supprimer
 function ProjectManager({ projets, actifId, onChanger, onNouveau, onRenommer, onDupliquer, onSupprimer, onExporter, onImporterFichier }) {
   const [renommageId, setRenommageId] = useState(null)
   const [brouillonNom, setBrouillonNom] = useState('')
+  // Évite qu'un blur déclenché par la fermeture du champ (après Échap)
+  // ne revalide quand même le renommage avec l'ancienne saisie.
+  const annulationEnCoursRef = useRef(false)
 
   function demarrerRenommage(p) {
     setRenommageId(p.id)
@@ -11,7 +14,16 @@ function ProjectManager({ projets, actifId, onChanger, onNouveau, onRenommer, on
   }
 
   function validerRenommage() {
+    if (annulationEnCoursRef.current) {
+      annulationEnCoursRef.current = false
+      return
+    }
     if (brouillonNom.trim()) onRenommer(renommageId, brouillonNom.trim())
+    setRenommageId(null)
+  }
+
+  function annulerRenommage() {
+    annulationEnCoursRef.current = true
     setRenommageId(null)
   }
 
@@ -27,7 +39,16 @@ function ProjectManager({ projets, actifId, onChanger, onNouveau, onRenommer, on
                 value={brouillonNom}
                 onChange={(e) => setBrouillonNom(e.target.value)}
                 onBlur={validerRenommage}
-                onKeyDown={(e) => e.key === 'Enter' && validerRenommage()}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') validerRenommage()
+                  else if (e.key === 'Escape') {
+                    // stopPropagation : ne doit annuler QUE ce renommage, pas
+                    // aussi une édition de service en cours ailleurs sur la
+                    // page (le raccourci Échap global d'App.jsx).
+                    e.stopPropagation()
+                    annulerRenommage()
+                  }
+                }}
               />
             ) : (
               <button className="projet-nom-btn" onClick={() => onChanger(p.id)} onDoubleClick={() => demarrerRenommage(p)}>

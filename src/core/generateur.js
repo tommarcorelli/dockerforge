@@ -32,6 +32,47 @@ function tagImage(image) {
   return idx === -1 ? null : dernierSegment.slice(idx + 1)
 }
 
+// Petit résumé chiffré de l'état "sécurité/bonnes pratiques" du projet — pas
+// une vraie analyse de sécurité, juste un coup d'œil rapide sur des points
+// déjà vérifiés individuellement ailleurs (secrets, healthcheck, tags...),
+// pour donner une vue d'ensemble sans avoir à les recompter à la main.
+export function auditSecurite(services, options = {}) {
+  const { extraireSecrets = false, secretsInclus = [], secretsExclus = [] } = options
+  const optsSecret = { inclusions: secretsInclus, exclusions: secretsExclus }
+
+  let portsExposes = 0
+  let servicesAvecHealthcheck = 0
+  let secretsEnClair = 0
+  let motsDePasseParDefaut = 0
+  let tagsNonFiges = 0
+
+  for (const s of services) {
+    portsExposes += (s.ports || []).filter((p) => p.host && p.container).length
+    if (s.healthcheck && s.healthcheck.enabled) servicesAvecHealthcheck += 1
+
+    const secretsService = (s.env || []).filter((e) => e.key && estSecret(e.key, optsSecret))
+    if (!extraireSecrets) secretsEnClair += secretsService.length
+    motsDePasseParDefaut += secretsService.filter((e) => e.value === 'change_moi').length
+
+    if (s.image && (tagImage(s.image) === null || tagImage(s.image) === 'latest')) tagsNonFiges += 1
+  }
+
+  const totalServices = services.length
+  let niveau = 'bon'
+  if (motsDePasseParDefaut > 0 || secretsEnClair > 0) niveau = 'a_ameliorer'
+  else if (tagsNonFiges > 0 || servicesAvecHealthcheck < totalServices) niveau = 'moyen'
+
+  return {
+    totalServices,
+    portsExposes,
+    servicesAvecHealthcheck,
+    secretsEnClair,
+    motsDePasseParDefaut,
+    tagsNonFiges,
+    niveau,
+  }
+}
+
 // Détecte si une clé de variable d'env ressemble à un secret (mot de passe,
 // token, clé applicative...). `options.exclusions` (liste blanche) est
 // prioritaire sur tout : une clé qui y figure n'est jamais traitée comme un
@@ -299,6 +340,45 @@ export function buildDockerRunScript(services, options = {}) {
 }
 
 // Valide la liste de services et renvoie erreurs/avertissements en français
+// Applications connues pour avoir presque toujours besoin d'une base de
+// données externe pour fonctionner correctement. `satisfaitPar` est vérifié
+// contre l'image de TOUS les autres services du projet (peu importe les
+// dépendances déclarées) : le but est juste d'attirer l'attention si rien
+// dans le projet ne ressemble à une base de données adaptée, pas de forcer
+// un lien — certaines de ces applis savent aussi tourner sur SQLite intégré.
+const SUGGESTIONS_DEPENDANCE = [
+  { motif: /wordpress/i, appli: 'WordPress', besoin: 'une base de données MySQL/MariaDB', satisfaitPar: /mysql|mariadb/i },
+  { motif: /^ghost(:|$)/i, appli: 'Ghost', besoin: 'une base de données MySQL (sinon il reste sur SQLite intégré)', satisfaitPar: /mysql|mariadb/i },
+  { motif: /gitea/i, appli: 'Gitea', besoin: 'une base de données (sinon il reste sur SQLite intégré)', satisfaitPar: /postgres|mysql|mariadb/i },
+  { motif: /nextcloud/i, appli: 'Nextcloud', besoin: 'une base de données (SQLite fonctionne mais est déconseillé au-delà d\'un usage perso)', satisfaitPar: /postgres|mysql|mariadb/i },
+  { motif: /matomo/i, appli: 'Matomo', besoin: 'une base de données MySQL/MariaDB', satisfaitPar: /mysql|mariadb/i },
+  { motif: /redmine/i, appli: 'Redmine', besoin: 'une base de données MySQL/PostgreSQL', satisfaitPar: /mysql|mariadb|postgres/i },
+  { motif: /bookstack/i, appli: 'BookStack', besoin: 'une base de données MySQL/MariaDB', satisfaitPar: /mysql|mariadb/i },
+  { motif: /keycloak/i, appli: 'Keycloak', besoin: 'une base de données PostgreSQL (recommandée en production)', satisfaitPar: /postgres/i },
+]
+
+// Repère les applications qui ont presque toujours besoin d'une base de
+// données externe, et suggère (sans bloquer) d'en ajouter une si rien dans
+// le projet ne semble en tenir lieu.
+export function suggererDependancesManquantes(services) {
+  const images = services.map((s) => s.image || '')
+  const suggestions = []
+
+  for (const regle of SUGGESTIONS_DEPENDANCE) {
+    const concernes = services.filter((s) => regle.motif.test(s.image || ''))
+    if (concernes.length === 0) continue
+    const dejaSatisfait = images.some((img) => regle.satisfaitPar.test(img))
+    if (!dejaSatisfait) {
+      const noms = concernes.map((s) => s.name || regle.appli).join(', ')
+      suggestions.push(
+        `${regle.appli} (${noms}) fonctionne généralement avec ${regle.besoin} — ajoute-la si ce n'est pas déjà prévu ailleurs.`
+      )
+    }
+  }
+
+  return suggestions
+}
+
 export function validerServices(services, options = {}) {
   const { extraireSecrets = false, secretsInclus = [], secretsExclus = [] } = options
   const optsSecret = { inclusions: secretsInclus, exclusions: secretsExclus }

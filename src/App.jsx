@@ -7,7 +7,7 @@ import NetworkManager from './components/NetworkManager.jsx'
 import GuideUtilisationModal from './components/GuideUtilisationModal.jsx'
 import GuideInstallationModal from './components/GuideInstallationModal.jsx'
 import ProjectManager from './components/ProjectManager.jsx'
-import { buildDockerCompose, validerServices, buildEnvFiles, buildDockerRunScript } from './core/generateur.js'
+import { buildDockerCompose, validerServices, buildEnvFiles, buildDockerRunScript, suggererDependancesManquantes, auditSecurite } from './core/generateur.js'
 import { portsHoteUtilises, trouverPortLibre } from './core/catalogue.js'
 import { construireStack } from './core/stacks.js'
 import { importerDockerCompose } from './core/importateur.js'
@@ -378,6 +378,11 @@ function App() {
     () => validerServices(services, { extraireSecrets, secretsInclus, secretsExclus }),
     [services, extraireSecrets, secretsInclus, secretsExclus]
   )
+  const suggestions = useMemo(() => suggererDependancesManquantes(services), [services])
+  const audit = useMemo(
+    () => auditSecurite(services, { extraireSecrets, secretsInclus, secretsExclus }),
+    [services, extraireSecrets, secretsInclus, secretsExclus]
+  )
   const yaml = useMemo(
     () => buildDockerCompose(services, { extraireSecrets, networks, nomProjet, secretsInclus, secretsExclus }),
     [services, extraireSecrets, networks, nomProjet, secretsInclus, secretsExclus]
@@ -621,6 +626,8 @@ function App() {
               envFiles={envFiles}
               erreurs={erreurs}
               avertissements={avertissements}
+              suggestions={suggestions}
+              audit={audit}
               nbServices={services.length}
               extraireSecrets={extraireSecrets}
               onToggleSecrets={toggleExtraireSecrets}

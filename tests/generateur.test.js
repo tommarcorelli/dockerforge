@@ -6,6 +6,8 @@ import {
   buildEnvFiles,
   validerServices,
   estSecret,
+  suggererDependancesManquantes,
+  auditSecurite,
 } from '../src/core/generateur.js'
 import { calculerCharge, construireLiens, grouperParReseau } from '../src/core/topologie.js'
 import { trouverPortLibre, portsHoteUtilises } from '../src/core/catalogue.js'
@@ -135,6 +137,62 @@ test('avertit sur une image sans version figée (tag latest implicite ou explici
 
   const { avertissements: a4 } = validerServices([serviceBase({ volumes: ['/data'], image: 'registry.local:5000/app:2.0' })])
   assert(!a4.some((a) => a.includes('version figée')), 'ne doit pas confondre le port du registre avec un tag absent')
+})
+
+test('suggererDependancesManquantes propose une base de données pour WordPress seul', () => {
+  const suggestions = suggererDependancesManquantes([serviceBase({ name: 'site', image: 'wordpress:latest' })])
+  assert(suggestions.some((s) => s.includes('WordPress')), 'devrait suggérer une base de données pour WordPress')
+})
+
+test("suggererDependancesManquantes ne dit rien si la base de données est déjà présente", () => {
+  const suggestions = suggererDependancesManquantes([
+    serviceBase({ name: 'site', image: 'wordpress:latest' }),
+    serviceBase({ name: 'db', image: 'mariadb:latest' }),
+  ])
+  assert(suggestions.length === 0, 'ne devrait rien suggérer, la base de données est déjà là')
+})
+
+console.log('\n--- auditSecurite ---')
+
+test('auditSecurite compte correctement ports, healthcheck, secrets et tags', () => {
+  const services = [
+    serviceBase({
+      name: 'web', image: 'nginx:latest',
+      ports: [{ host: '8080', container: '80' }],
+      healthcheck: { enabled: true, test: 'curl -f http://localhost' },
+    }),
+    serviceBase({
+      name: 'db', image: 'mysql:8',
+      ports: [{ host: '3306', container: '3306' }],
+      env: [{ key: 'MYSQL_ROOT_PASSWORD', value: 'change_moi' }],
+    }),
+  ]
+  const audit = auditSecurite(services, { extraireSecrets: false })
+  assert(audit.totalServices === 2, `totalServices devrait être 2, obtenu ${audit.totalServices}`)
+  assert(audit.portsExposes === 2, `portsExposes devrait être 2, obtenu ${audit.portsExposes}`)
+  assert(audit.servicesAvecHealthcheck === 1, `servicesAvecHealthcheck devrait être 1, obtenu ${audit.servicesAvecHealthcheck}`)
+  assert(audit.secretsEnClair === 1, `secretsEnClair devrait être 1, obtenu ${audit.secretsEnClair}`)
+  assert(audit.motsDePasseParDefaut === 1, `motsDePasseParDefaut devrait être 1, obtenu ${audit.motsDePasseParDefaut}`)
+  assert(audit.tagsNonFiges === 1, `tagsNonFiges devrait être 1 (nginx:latest), obtenu ${audit.tagsNonFiges}`)
+  assert(audit.niveau === 'a_ameliorer', `niveau devrait être "a_ameliorer", obtenu ${audit.niveau}`)
+})
+
+test('auditSecurite renvoie "bon" pour un projet propre', () => {
+  const services = [
+    serviceBase({
+      name: 'web', image: 'nginx:1.25',
+      healthcheck: { enabled: true, test: 'curl -f http://localhost' },
+      env: [],
+    }),
+  ]
+  const audit = auditSecurite(services)
+  assert(audit.niveau === 'bon', `niveau devrait être "bon", obtenu ${audit.niveau}`)
+})
+
+test("auditSecurite ne compte pas les secrets en clair si l'extraction est activée", () => {
+  const services = [serviceBase({ env: [{ key: 'MYSQL_ROOT_PASSWORD', value: 'xyz' }] })]
+  const audit = auditSecurite(services, { extraireSecrets: true })
+  assert(audit.secretsEnClair === 0, 'ne devrait pas compter les secrets déjà extraits comme "en clair"')
 })
 
 test('un service valide ne remonte aucune erreur', () => {

@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import { deviner_teinte, trouverIcone } from '../core/catalogue.js'
 import Icon from './Icon.jsx'
 
@@ -12,6 +12,10 @@ function ServiceList({ services, onRemove, onDuplicate, onReorder, onEdit, idEnE
   const [copieId, setCopieId] = useState(null)
   const [modeleEnNommageId, setModeleEnNommageId] = useState(null)
   const [brouillonNomModele, setBrouillonNomModele] = useState('')
+  // Même précaution que pour le renommage de projet : évite qu'un blur
+  // déclenché par la fermeture du champ (après Échap) ne crée quand même
+  // le modèle avec l'ancienne saisie.
+  const annulationEnCoursRef = useRef(false)
 
   function demarrerNommageModele(s) {
     setModeleEnNommageId(s.id)
@@ -19,7 +23,16 @@ function ServiceList({ services, onRemove, onDuplicate, onReorder, onEdit, idEnE
   }
 
   function validerNommageModele(s) {
+    if (annulationEnCoursRef.current) {
+      annulationEnCoursRef.current = false
+      return
+    }
     if (brouillonNomModele.trim()) onEnregistrerModele(s, brouillonNomModele.trim())
+    setModeleEnNommageId(null)
+  }
+
+  function annulerNommageModele() {
+    annulationEnCoursRef.current = true
     setModeleEnNommageId(null)
   }
 
@@ -171,7 +184,16 @@ function ServiceList({ services, onRemove, onDuplicate, onReorder, onEdit, idEnE
                           value={brouillonNomModele}
                           onChange={(e) => setBrouillonNomModele(e.target.value)}
                           onBlur={() => validerNommageModele(s)}
-                          onKeyDown={(e) => e.key === 'Escape' && setModeleEnNommageId(null)}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Escape') {
+                              // Ne doit annuler QUE le nommage du modèle — sans
+                              // ce stopPropagation, l'Échap remonte jusqu'au
+                              // raccourci clavier global d'App.jsx et annule
+                              // en plus l'édition d'un AUTRE service en cours.
+                              e.stopPropagation()
+                              annulerNommageModele()
+                            }
+                          }}
                           placeholder="nom du modèle"
                         />
                       </form>

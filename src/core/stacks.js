@@ -1012,6 +1012,102 @@ export const STACKS = [
       },
     ],
   },
+  {
+    id: 'ldap',
+    nom: 'Annuaire LDAP (OpenLDAP)',
+    description: 'OpenLDAP + phpLDAPadmin pour administrer l\'annuaire depuis un navigateur',
+    services: [
+      {
+        name: 'openldap', image: 'osixia/openldap:latest',
+        ports: [{ host: 389, container: 389 }],
+        volumes: ['./ldap-data:/var/lib/ldap', './ldap-config:/etc/ldap/slapd.d'],
+        env: [
+          { key: 'LDAP_ORGANISATION', value: 'Mon Entreprise' },
+          { key: 'LDAP_DOMAIN', value: 'example.local' },
+          { key: 'LDAP_ADMIN_PASSWORD', value: 'change_moi' },
+        ],
+        dependsOn: [],
+      },
+      {
+        name: 'phpldapadmin', image: 'osixia/phpldapadmin:latest',
+        ports: [{ host: 8081, container: 80 }],
+        volumes: [''],
+        env: [
+          { key: 'PHPLDAPADMIN_LDAP_HOSTS', value: 'openldap' },
+          { key: 'PHPLDAPADMIN_HTTPS', value: 'false' },
+        ],
+        dependsOn: ['openldap'],
+      },
+    ],
+  },
+  {
+    id: 'zabbix',
+    nom: 'Supervision (Zabbix)',
+    description: 'Zabbix (serveur + interface web) avec PostgreSQL',
+    services: [
+      {
+        name: 'db', image: 'postgres:15',
+        ports: [],
+        volumes: ['./zabbix-db:/var/lib/postgresql/data'],
+        env: [
+          { key: 'POSTGRES_DB', value: 'zabbix' },
+          { key: 'POSTGRES_USER', value: 'zabbix' },
+          { key: 'POSTGRES_PASSWORD', value: 'change_moi' },
+        ],
+        dependsOn: [],
+      },
+      {
+        name: 'zabbix-server', image: 'zabbix/zabbix-server-pgsql:latest',
+        ports: [{ host: 10051, container: 10051 }],
+        volumes: [''],
+        env: [
+          { key: 'DB_SERVER_HOST', value: 'db' },
+          { key: 'POSTGRES_DB', value: 'zabbix' },
+          { key: 'POSTGRES_USER', value: 'zabbix' },
+          { key: 'POSTGRES_PASSWORD', value: 'change_moi' },
+        ],
+        dependsOn: ['db'],
+      },
+      {
+        name: 'zabbix-web', image: 'zabbix/zabbix-web-nginx-pgsql:latest',
+        ports: [{ host: 8080, container: 8080 }],
+        volumes: [''],
+        env: [
+          { key: 'DB_SERVER_HOST', value: 'db' },
+          { key: 'POSTGRES_DB', value: 'zabbix' },
+          { key: 'POSTGRES_USER', value: 'zabbix' },
+          { key: 'POSTGRES_PASSWORD', value: 'change_moi' },
+          { key: 'ZBX_SERVER_HOST', value: 'zabbix-server' },
+          { key: 'PHP_TZ', value: 'Europe/Paris' },
+        ],
+        dependsOn: ['zabbix-server'],
+      },
+    ],
+  },
+  {
+    id: 'glpi',
+    nom: 'GLPI (gestion de parc)',
+    description: 'GLPI + MariaDB — la base de données se relie via l\'assistant d\'installation web de GLPI (hôte "db", utilisateur "root")',
+    services: [
+      {
+        name: 'db', image: 'mariadb:latest',
+        ports: [],
+        volumes: ['./glpi-db:/var/lib/mysql'],
+        env: [
+          { key: 'MARIADB_ROOT_PASSWORD', value: 'change_moi' },
+          { key: 'MARIADB_DATABASE', value: 'glpi' },
+        ],
+        dependsOn: [],
+      },
+      {
+        name: 'glpi', image: 'diouxx/glpi:latest',
+        ports: [{ host: 8082, container: 80 }],
+        volumes: ['./glpi-data:/var/www/html/glpi/files'],
+        env: [{ key: 'TIMEZONE', value: 'Europe/Paris' }],
+        dependsOn: ['db'],
+      },
+    ],
+  },
 ]
 
 // Construit des objets service complets (avec id) à partir d'une stack,

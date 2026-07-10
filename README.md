@@ -127,6 +127,8 @@ dockerforge/
   `.gitignore` généré automatiquement dans l'export.
 - Détection des secrets personnalisable par projet (liste noire : toujours
   traiter comme secret ; liste blanche : ne jamais traiter comme secret).
+- Mini-audit sécurité repliable dans l'aperçu (ports exposés, healthchecks,
+  secrets en clair, mots de passe par défaut, images sans version figée).
 
 **Export**
 - Copier le YAML, télécharger le `docker-compose.yml` seul, ou un `.zip`
@@ -157,6 +159,9 @@ dockerforge/
   transférer un projet tel quel.
 - Validation en direct (erreurs bloquantes + avertissements), y compris la
   détection de dépendances invalides (auto-référence, service inexistant).
+- Suggestion douce (non-bloquante) d'ajouter une base de données quand une
+  application qui en a presque toujours besoin (WordPress, Nextcloud...) est
+  seule dans le projet.
 - Sauvegarde automatique dans le navigateur (localStorage), par projet.
 - **Thème clair (par défaut) / sombre** basculable en un clic (bouton dans
   l'en-tête), préférence mémorisée.
@@ -165,8 +170,8 @@ dockerforge/
 
 ## Idées de suites possibles
 
-_Aucune pour l'instant — la détection de secrets personnalisable (liste
-blanche/noire) a été réalisée, voir Correctifs récents._
+_Aucune pour l'instant — toutes les pistes envisagées ont été réalisées, voir
+Correctifs récents._
 
 ## Correctifs récents
 

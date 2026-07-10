@@ -121,6 +121,10 @@ export const CATALOGUE = [
       { nom: 'GitLab', image: 'gitlab/gitlab-ce:latest', portDefaut: 80, suggestionNom: 'gitlab', envDefaut: [], icone: siGitlab },
       { nom: 'SonarQube', image: 'sonarqube:latest', portDefaut: 9000, suggestionNom: 'sonarqube', envDefaut: [], icone: siSonarqube },
       { nom: 'Jupyter', image: 'jupyter/base-notebook:latest', portDefaut: 8888, suggestionNom: 'jupyter', envDefaut: [], icone: siJupyter },
+      { nom: 'Registre Docker privé', image: 'registry:2', portDefaut: 5000, suggestionNom: 'registry', envDefaut: [] },
+      { nom: 'CrowdSec', image: 'crowdsecurity/crowdsec:latest', portDefaut: 8080, suggestionNom: 'crowdsec', envDefaut: [
+        { key: 'COLLECTIONS', value: 'crowdsecurity/nginx crowdsecurity/sshd' },
+      ] },
     ],
   },
   {
@@ -137,6 +141,38 @@ export const CATALOGUE = [
       { nom: 'Home Assistant', image: 'homeassistant/home-assistant:latest', portDefaut: 8123, suggestionNom: 'homeassistant', envDefaut: [], icone: siHomeassistant },
       { nom: 'Plex', image: 'plexinc/pms-docker:latest', portDefaut: 32400, suggestionNom: 'plex', envDefaut: [], icone: siPlex },
       { nom: 'Jellyfin', image: 'jellyfin/jellyfin:latest', portDefaut: 8096, suggestionNom: 'jellyfin', envDefaut: [], icone: siJellyfin },
+    ],
+  },
+  {
+    categorie: 'Sécurité & annuaire',
+    teinte: 'cyan',
+    images: [
+      { nom: 'OpenLDAP', image: 'osixia/openldap:latest', portDefaut: 389, suggestionNom: 'openldap', envDefaut: [
+        { key: 'LDAP_ORGANISATION', value: 'Mon Entreprise' },
+        { key: 'LDAP_DOMAIN', value: 'example.local' },
+        { key: 'LDAP_ADMIN_PASSWORD', value: 'change_moi' },
+      ] },
+      { nom: 'phpLDAPadmin', image: 'osixia/phpldapadmin:latest', portDefaut: 8081, suggestionNom: 'phpldapadmin', envDefaut: [
+        { key: 'PHPLDAPADMIN_LDAP_HOSTS', value: 'openldap' },
+        { key: 'PHPLDAPADMIN_HTTPS', value: 'false' },
+      ] },
+      { nom: 'Zabbix (serveur)', image: 'zabbix/zabbix-server-pgsql:latest', portDefaut: 10051, suggestionNom: 'zabbix-server', envDefaut: [
+        { key: 'DB_SERVER_HOST', value: 'db' },
+        { key: 'POSTGRES_USER', value: 'zabbix' },
+        { key: 'POSTGRES_PASSWORD', value: 'change_moi' },
+        { key: 'POSTGRES_DB', value: 'zabbix' },
+      ] },
+      { nom: 'Zabbix (interface web)', image: 'zabbix/zabbix-web-nginx-pgsql:latest', portDefaut: 8080, suggestionNom: 'zabbix-web', envDefaut: [
+        { key: 'DB_SERVER_HOST', value: 'db' },
+        { key: 'POSTGRES_USER', value: 'zabbix' },
+        { key: 'POSTGRES_PASSWORD', value: 'change_moi' },
+        { key: 'POSTGRES_DB', value: 'zabbix' },
+        { key: 'ZBX_SERVER_HOST', value: 'zabbix-server' },
+        { key: 'PHP_TZ', value: 'Europe/Paris' },
+      ] },
+      { nom: 'GLPI', image: 'diouxx/glpi:latest', portDefaut: 80, suggestionNom: 'glpi', envDefaut: [
+        { key: 'TIMEZONE', value: 'Europe/Paris' },
+      ] },
     ],
   },
 ]
