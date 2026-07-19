@@ -17,6 +17,7 @@ import MesModeles from './components/MesModeles.jsx'
 import { siDocker } from 'simple-icons'
 import Icon from './components/Icon.jsx'
 import SchemaNavire from './components/SchemaNavire.jsx'
+import CommandPalette from './components/CommandPalette.jsx'
 
 // App.jsx — composant racine de DockerForge
 function App() {
@@ -29,6 +30,7 @@ function App() {
   const [serviceEnEditionId, setServiceEnEditionId] = useState(null)
   const [undo, setUndo] = useState(null)
   const undoTimeoutRef = useRef(null)
+  const [paletteOuverte, setPaletteOuverte] = useState(false)
 
   // Déclenche un toast "annuler" après une suppression : garde l'action de
   // restauration en mémoire pendant quelques secondes avant de l'oublier.
@@ -422,18 +424,22 @@ function App() {
   useEffect(() => {
     function onKeyDown(e) {
       const ctrlOuCmd = e.ctrlKey || e.metaKey
-      if (ctrlOuCmd && e.key.toLowerCase() === 's') {
+      if (ctrlOuCmd && e.key.toLowerCase() === 'k') {
+        e.preventDefault()
+        setPaletteOuverte((o) => !o)
+      } else if (ctrlOuCmd && e.key.toLowerCase() === 's') {
         e.preventDefault()
         telechargerComposeRapide()
       } else if (e.key === 'Escape') {
-        if (serviceEnEditionId) annulerEdition()
+        if (paletteOuverte) setPaletteOuverte(false)
+        else if (serviceEnEditionId) annulerEdition()
         else if (guideUtilisationOuvert) setGuideUtilisationOuvert(false)
         else if (guideInstallationOuvert) setGuideInstallationOuvert(false)
       }
     }
     window.addEventListener('keydown', onKeyDown)
     return () => window.removeEventListener('keydown', onKeyDown)
-  }, [yaml, services.length, serviceEnEditionId, guideUtilisationOuvert, guideInstallationOuvert])
+  }, [yaml, services.length, serviceEnEditionId, guideUtilisationOuvert, guideInstallationOuvert, paletteOuverte])
 
   return (
     <div className="app">
@@ -475,6 +481,9 @@ function App() {
           </div>
 
           <div className="guide-boutons">
+            <button className="btn-discret btn-guide" onClick={() => setPaletteOuverte(true)}>
+              ⌘K Palette de commandes
+            </button>
             <button className="btn-discret btn-guide" onClick={() => setGuideUtilisationOuvert(true)}>
               📖 Guide d'utilisation
             </button>
@@ -648,6 +657,17 @@ function App() {
 
       <GuideUtilisationModal ouvert={guideUtilisationOuvert} onFermer={() => setGuideUtilisationOuvert(false)} />
       <GuideInstallationModal ouvert={guideInstallationOuvert} onFermer={() => setGuideInstallationOuvert(false)} />
+
+      <CommandPalette
+        ouvert={paletteOuverte}
+        onFermer={() => setPaletteOuverte(false)}
+        onChargerStack={chargerStack}
+        onNaviguerOnglet={setOngletActif}
+        onNouveauProjet={nouveauProjet}
+        onBasculerTheme={basculerTheme}
+        onTelechargerCompose={telechargerComposeRapide}
+        onToutEffacer={reinitialiser}
+      />
 
       {undo && (
         <div className="toast-undo" role="status">

@@ -33,6 +33,7 @@ const serviceVide = () => ({
   healthcheck: { enabled: false, test: '', interval: '30s', timeout: '5s', retries: 3 },
   memLimit: '',
   cpus: '',
+  traefik: { active: false, domaine: '', port: '' },
 })
 
 // Formulaire d'ajout/édition d'un service Docker — 3 niveaux de complexité :
@@ -73,6 +74,13 @@ function ServiceForm({ onAdd, servicesExistants, servicesActuels, networksDispon
 
   function majHealthcheck(champ, valeur) {
     setService((s) => ({ ...s, healthcheck: { ...s.healthcheck, [champ]: valeur } }))
+  }
+
+  function majTraefik(champ, valeur) {
+    setService((s) => ({
+      ...s,
+      traefik: { active: false, domaine: '', port: '', ...s.traefik, [champ]: valeur },
+    }))
   }
 
   function choisirImage(item) {
@@ -506,6 +514,39 @@ function ServiceForm({ onAdd, servicesExistants, servicesActuels, networksDispon
                 onChange={(e) => majChamp('cpus', e.target.value)}
               />
             </div>
+          </fieldset>
+
+          <fieldset>
+            <legend>
+              <span className="label-avec-aide">
+                Reverse proxy (Traefik)
+                <Aide texte="Génère automatiquement les labels Docker lus par Traefik pour router le trafic vers ce service par nom de domaine, avec HTTPS automatique (Let's Encrypt). Suppose qu'un conteneur Traefik tourne déjà sur le même réseau Docker (voir la stack « Traefik » prête à charger)." />
+              </span>
+            </legend>
+            <label className="option-secrets">
+              <input
+                type="checkbox"
+                checked={!!service.traefik?.active}
+                onChange={(e) => majTraefik('active', e.target.checked)}
+              />
+              Exposer ce service via Traefik
+            </label>
+            {service.traefik?.active && (
+              <div className="ligne-champ" style={{ marginTop: '0.5rem' }}>
+                <input
+                  type="text"
+                  placeholder="Nom de domaine, ex: app.mondomaine.fr"
+                  value={service.traefik?.domaine || ''}
+                  onChange={(e) => majTraefik('domaine', e.target.value)}
+                />
+                <input
+                  type="text"
+                  placeholder="Port interne (auto si vide)"
+                  value={service.traefik?.port || ''}
+                  onChange={(e) => majTraefik('port', e.target.value)}
+                />
+              </div>
+            )}
           </fieldset>
         </>
       )}

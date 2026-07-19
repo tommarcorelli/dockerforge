@@ -112,6 +112,41 @@ export function collecterVolumesNommes(services) {
   return noms
 }
 
+// Nettoie un nom de service pour l'utiliser comme identifiant de routeur
+// Traefik (uniquement lettres/chiffres/tirets, comme l'exige Traefik).
+function nomRouteurTraefik(nom) {
+  const propre = String(nom || 'service').toLowerCase().replace(/[^a-z0-9-]+/g, '-').replace(/^-+|-+$/g, '')
+  return propre || 'service'
+}
+
+// Détermine le port interne à exposer via Traefik : celui saisi manuellement
+// si présent, sinon le premier port conteneur déclaré, sinon 80 par défaut.
+function portConteneurTraefik(service) {
+  const portManuel = service.traefik && String(service.traefik.port || '').trim()
+  if (portManuel) return portManuel
+  const premierPort = (service.ports || []).find((p) => p.container && String(p.container).trim() !== '')
+  return premierPort ? String(premierPort.container).trim() : '80'
+}
+
+// Construit les labels Docker que Traefik (v2+) lit pour router automatique-
+// ment le trafic HTTPS vers ce service par nom de domaine. Renvoie un tableau
+// vide si l'option n'est pas activée ou si aucun domaine n'est renseigné (les
+// labels seraient invalides/inutiles sans domaine).
+export function construireLabelsTraefik(service) {
+  if (!service.traefik || !service.traefik.active) return []
+  const domaine = (service.traefik.domaine || '').trim()
+  if (!domaine) return []
+  const routeur = nomRouteurTraefik(service.name)
+  const port = portConteneurTraefik(service)
+  return [
+    'traefik.enable=true',
+    `traefik.http.routers.${routeur}.rule=Host(\`${domaine}\`)`,
+    `traefik.http.routers.${routeur}.entrypoints=websecure`,
+    `traefik.http.routers.${routeur}.tls.certresolver=letsencrypt`,
+    `traefik.http.services.${routeur}.loadbalancer.server.port=${port}`,
+  ]
+}
+
 export function buildDockerCompose(services, options = {}) {
   const { extraireSecrets = false, nomProjet = '', networks = [], secretsInclus = [], secretsExclus = [] } = options
   const optsSecret = { inclusions: secretsInclus, exclusions: secretsExclus }
@@ -203,6 +238,14 @@ export function buildDockerCompose(services, options = {}) {
       lines.push('    networks:')
       for (const net of service.networks) {
         lines.push(`      - ${net}`)
+      }
+    }
+
+    const labelsTraefik = construireLabelsTraefik(service)
+    if (labelsTraefik.length > 0) {
+      lines.push('    labels:')
+      for (const l of labelsTraefik) {
+        lines.push(`      - ${yamlValue(l)}`)
       }
     }
 
@@ -314,6 +357,9 @@ export function buildDockerRunScript(services, options = {}) {
     }
     for (const e of normalEnv) {
       parts.push(`-e ${e.key}=${shValue(e.value || '')}`)
+    }
+    for (const l of construireLabelsTraefik(service)) {
+      parts.push(`-l ${shValue(l)}`)
     }
     if (service.healthcheck && service.healthcheck.enabled && service.healthcheck.test) {
       parts.push(`--health-cmd ${shValue(service.healthcheck.test)}`)
@@ -442,6 +488,12 @@ export function validerServices(services, options = {}) {
     if (motsDePasseParDefaut.length > 0) {
       avertissements.push(
         `Le service "${label}" utilise encore la valeur par défaut "change_moi" pour ${motsDePasseParDefaut.map((e) => e.key).join(', ')} — génère un vrai mot de passe avant de déployer.`
+      )
+    }
+
+    if (service.traefik && service.traefik.active && !(service.traefik.domaine || '').trim()) {
+      avertissements.push(
+        `Le service "${label}" a "Exposer via Traefik" activé mais aucun nom de domaine renseigné — aucun label ne sera généré tant que le domaine est vide.`
       )
     }
 

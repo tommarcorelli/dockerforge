@@ -1226,9 +1226,9 @@ export const STACKS = [
     ],
   },
   {
-    id: 'gitea',
-    nom: 'Git auto-hébergé (Gitea)',
-    description: 'Gitea + PostgreSQL — votre propre forge Git',
+    id: 'gitea-ssh',
+    nom: 'Git auto-hébergé (Gitea + SSH)',
+    description: 'Gitea + PostgreSQL — votre propre forge Git, avec le port SSH exposé pour git@',
     services: [
       {
         name: 'gitea', image: 'gitea/gitea:latest', ports: [{ host: 3000, container: 3000 }, { host: 2222, container: 22 }],
@@ -1333,6 +1333,135 @@ export const STACKS = [
       },
     ],
   },
+  {
+    id: 'traefik-demo',
+    nom: 'Traefik (reverse proxy)',
+    description: 'Traefik + service de démo "whoami", routé automatiquement par domaine via les labels générés par DockerForge',
+    services: [
+      {
+        name: 'traefik', image: 'traefik:latest',
+        ports: [{ host: 80, container: 80 }, { host: 8080, container: 8080 }],
+        volumes: ['/var/run/docker.sock:/var/run/docker.sock:ro'],
+        env: [
+          { key: 'TRAEFIK_PROVIDERS_DOCKER', value: 'true' },
+          { key: 'TRAEFIK_PROVIDERS_DOCKER_EXPOSEDBYDEFAULT', value: 'false' },
+          { key: 'TRAEFIK_ENTRYPOINTS_WEB_ADDRESS', value: ':80' },
+          { key: 'TRAEFIK_API_DASHBOARD', value: 'true' },
+          { key: 'TRAEFIK_API_INSECURE', value: 'true' },
+        ],
+        dependsOn: [],
+      },
+      {
+        name: 'whoami', image: 'traefik/whoami:latest', ports: [], volumes: [], env: [],
+        dependsOn: ['traefik'],
+        traefik: { active: true, domaine: 'whoami.localhost', port: '80' },
+      },
+    ],
+  },
+  {
+    id: 'baserow',
+    nom: 'Baserow',
+    description: "Alternative no-code à Airtable — base de données visuelle, image tout-en-un",
+    services: [
+      {
+        name: 'baserow', image: 'baserow/baserow:1-latest', ports: [{ host: 8082, container: 80 }],
+        volumes: ['./baserow-data:/baserow/data'],
+        env: [{ key: 'BASEROW_PUBLIC_URL', value: 'http://localhost:8082' }],
+        dependsOn: [],
+      },
+    ],
+  },
+  {
+    id: 'nocodb',
+    nom: 'NocoDB',
+    description: "Interface façon Airtable au-dessus d'une base PostgreSQL",
+    services: [
+      {
+        name: 'nocodb', image: 'nocodb/nocodb:latest', ports: [{ host: 8083, container: 8080 }],
+        volumes: ['./nocodb-data:/usr/app/data'],
+        env: [{ key: 'NC_DB', value: 'pg://db:5432?u=nocodb&p=change_moi&d=nocodb' }],
+        dependsOn: ['db'],
+      },
+      {
+        name: 'db', image: 'postgres:16', ports: [],
+        volumes: ['./nocodb-db:/var/lib/postgresql/data'],
+        env: [{ key: 'POSTGRES_USER', value: 'nocodb' }, { key: 'POSTGRES_PASSWORD', value: 'change_moi' }, { key: 'POSTGRES_DB', value: 'nocodb' }],
+        dependsOn: [],
+      },
+    ],
+  },
+  {
+    id: 'duplicati',
+    nom: 'Duplicati',
+    description: 'Sauvegardes planifiées et chiffrées, en local ou vers le cloud',
+    services: [
+      {
+        name: 'duplicati', image: 'duplicati/duplicati:latest', ports: [{ host: 8200, container: 8200 }],
+        volumes: ['./duplicati-config:/config', './duplicati-backups:/backups', './a-sauvegarder:/source:ro'],
+        env: [{ key: 'SETTINGS_ENCRYPTION_KEY', value: 'change_moi' }],
+        dependsOn: [],
+      },
+    ],
+  },
+  {
+    id: 'trilium',
+    nom: 'Trilium Notes',
+    description: 'Prise de notes hiérarchique et personnelle, auto-hébergée',
+    services: [
+      {
+        name: 'trilium', image: 'zadam/trilium:latest', ports: [{ host: 8084, container: 8080 }],
+        volumes: ['./trilium-data:/home/node/trilium-data'], env: [], dependsOn: [],
+      },
+    ],
+  },
+  {
+    id: 'calibre-web',
+    nom: 'Calibre-Web',
+    description: "Bibliothèque et lecteur d'ebooks en ligne, à partir d'une bibliothèque Calibre existante",
+    services: [
+      {
+        name: 'calibre-web', image: 'linuxserver/calibre-web:latest', ports: [{ host: 8085, container: 8083 }],
+        volumes: ['./calibre-config:/config', './calibre-library:/books'],
+        env: [{ key: 'PUID', value: '1000' }, { key: 'PGID', value: '1000' }, { key: 'TZ', value: 'Europe/Paris' }],
+        dependsOn: [],
+      },
+    ],
+  },
+  {
+    id: 'logs-loki',
+    nom: 'Journalisation (Loki)',
+    description: 'Loki + Promtail + Grafana — centralise et explore les logs de tous les conteneurs',
+    services: [
+      {
+        name: 'loki', image: 'grafana/loki:latest', ports: [{ host: 3100, container: 3100 }],
+        volumes: ['./loki-data:/loki'], env: [], dependsOn: [],
+      },
+      {
+        name: 'promtail', image: 'grafana/promtail:latest', ports: [],
+        volumes: ['/var/lib/docker/containers:/var/lib/docker/containers:ro', '/var/run/docker.sock:/var/run/docker.sock:ro'],
+        env: [], dependsOn: ['loki'],
+      },
+      {
+        name: 'grafana', image: 'grafana/grafana:latest', ports: [{ host: 3002, container: 3000 }],
+        volumes: ['./grafana-data:/var/lib/grafana'],
+        env: [{ key: 'GF_SECURITY_ADMIN_PASSWORD', value: 'change_moi' }],
+        dependsOn: ['loki'],
+      },
+    ],
+  },
+  {
+    id: 'tailscale',
+    nom: 'Tailscale (VPN mesh)',
+    description: 'Rejoint ce serveur à votre tailnet Tailscale, sans exposer de ports publics',
+    services: [
+      {
+        name: 'tailscale', image: 'tailscale/tailscale:latest', ports: [],
+        volumes: ['./tailscale-state:/var/lib/tailscale', '/dev/net/tun:/dev/net/tun'],
+        env: [{ key: 'TS_AUTHKEY', value: 'change_moi' }, { key: 'TS_STATE_DIR', value: '/var/lib/tailscale' }],
+        dependsOn: [],
+      },
+    ],
+  },
 ]
 
 // Construit des objets service complets (avec id) à partir d'une stack,
@@ -1361,6 +1490,7 @@ export function construireStack(stack, portsUtilisesInitial) {
       healthcheck: { enabled: false, test: healthcheckSuggere(s.image), interval: '30s', timeout: '5s', retries: 3 },
       memLimit: '',
       cpus: '',
+      traefik: s.traefik || { active: false, domaine: '', port: '' },
     }
   })
 }

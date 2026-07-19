@@ -31,6 +31,27 @@ Résumé de tout ce qui a été ajouté/corrigé, dans l'ordre.
 
 ## Correctifs récents
 
+- **Labels Traefik automatiques** : ajouté — option "Exposer via Traefik"
+  par service (domaine + port interne optionnel), génère les labels
+  (`traefik.enable`, routeur, entrypoint HTTPS, certresolver Let's Encrypt)
+  dans le `docker-compose.yml` et dans `dockerforge-run.sh` (`-l`).
+  Avertissement de validation si activé sans domaine. Nouvelle stack
+  "Traefik (reverse proxy)" (Traefik + whoami) qui démontre la
+  fonctionnalité prête à charger.
+- **Palette de commandes (Ctrl/Cmd+K)** : ajoutée — nouveau composant
+  `CommandPalette.jsx`, recherche unifiée parmi les 73 stacks et les
+  actions rapides de l'appli (navigation d'onglet, nouveau projet, thème,
+  téléchargement, tout effacer), entièrement navigable au clavier.
+- **Vague 7 de stacks** (65 → 73) : Traefik + whoami, Baserow, NocoDB,
+  Duplicati, Trilium Notes, Calibre-Web, Journalisation (Loki + Promtail +
+  Grafana), Tailscale.
+- **Id de stack "gitea" dupliqué** : corrigé (renommé en `gitea-ssh` pour la
+  variante avec port SSH). Ajout de tests garde-fou sur l'intégrité du
+  catalogue de stacks (id unique, service avec nom/image, `dependsOn`
+  valide) pour éviter une régression similaire.
+- **Micro-animations & accessibilité clavier** : légères transitions au
+  survol des cartes, style `focus-visible` unifié sur tous les éléments
+  interactifs.
 - **Édition en place d'un service** : ajoutée (bouton ✎ dans la liste). En
   corrigeant les effets de bord : le service en cours d'édition ne pouvait
   plus se sélectionner lui-même comme dépendance ni se voir imposer un faux

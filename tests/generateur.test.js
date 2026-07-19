@@ -4,13 +4,16 @@
 import {
   buildDockerCompose,
   buildEnvFiles,
+  buildDockerRunScript,
   validerServices,
   estSecret,
   suggererDependancesManquantes,
   auditSecurite,
+  construireLabelsTraefik,
 } from '../src/core/generateur.js'
 import { calculerCharge, construireLiens, grouperParReseau } from '../src/core/topologie.js'
 import { trouverPortLibre, portsHoteUtilises } from '../src/core/catalogue.js'
+import { STACKS } from '../src/core/stacks.js'
 
 let nbTests = 0
 let nbEchecs = 0
@@ -98,6 +101,83 @@ test('génère un fichier .env avec les variables de tous les services', () => {
   ]
   const fichiers = buildEnvFiles(services)
   assert(Object.keys(fichiers).length > 0, 'devrait produire au moins un fichier .env')
+})
+
+console.log('\n--- construireLabelsTraefik ---')
+
+test("ne génère aucun label si l'option Traefik est désactivée", () => {
+  const labels = construireLabelsTraefik(serviceBase({ traefik: { active: false, domaine: 'app.test' } }))
+  assert(labels.length === 0, 'aucun label attendu quand traefik.active est false')
+})
+
+test("ne génère aucun label si activé mais sans domaine", () => {
+  const labels = construireLabelsTraefik(serviceBase({ traefik: { active: true, domaine: '' } }))
+  assert(labels.length === 0, 'aucun label attendu sans domaine renseigné')
+})
+
+test('génère les labels attendus avec domaine et port explicites', () => {
+  const labels = construireLabelsTraefik(
+    serviceBase({ name: 'app', traefik: { active: true, domaine: 'app.example.com', port: '3000' } })
+  )
+  assert(labels.includes('traefik.enable=true'), 'devrait activer Traefik')
+  assert(
+    labels.some((l) => l === 'traefik.http.routers.app.rule=Host(`app.example.com`)'),
+    'devrait router sur le bon nom de domaine'
+  )
+  assert(
+    labels.some((l) => l === 'traefik.http.services.app.loadbalancer.server.port=3000'),
+    'devrait cibler le port explicite'
+  )
+})
+
+test('retombe sur le premier port conteneur si aucun port Traefik explicite', () => {
+  const labels = construireLabelsTraefik(
+    serviceBase({
+      name: 'app',
+      ports: [{ host: '8080', container: '4000' }],
+      traefik: { active: true, domaine: 'app.example.com', port: '' },
+    })
+  )
+  assert(
+    labels.some((l) => l === 'traefik.http.services.app.loadbalancer.server.port=4000'),
+    'devrait retomber sur le port conteneur déclaré'
+  )
+})
+
+test('nettoie le nom de service pour construire un identifiant de routeur valide', () => {
+  const labels = construireLabelsTraefik(
+    serviceBase({ name: 'Mon Appli_01', traefik: { active: true, domaine: 'app.example.com' } })
+  )
+  assert(
+    labels.some((l) => l.includes('traefik.http.routers.mon-appli-01.rule=')),
+    'devrait produire un identifiant de routeur en minuscules sans caractères spéciaux'
+  )
+})
+
+test('buildDockerCompose inclut les labels Traefik générés', () => {
+  const yaml = buildDockerCompose([
+    serviceBase({ name: 'app', traefik: { active: true, domaine: 'app.example.com', port: '3000' } }),
+  ])
+  assertInclut(yaml, 'labels:')
+  assertInclut(yaml, 'traefik.enable=true')
+})
+
+test('buildDockerRunScript ajoute les labels Traefik via -l', () => {
+  const script = buildDockerRunScript([
+    serviceBase({ name: 'app', traefik: { active: true, domaine: 'app.example.com', port: '3000' } }),
+  ])
+  assertInclut(script, '-l')
+  assertInclut(script, 'traefik.enable=true')
+})
+
+test('validerServices avertit si Traefik est activé sans domaine', () => {
+  const { avertissements } = validerServices([
+    serviceBase({ volumes: ['/data'], traefik: { active: true, domaine: '' } }),
+  ])
+  assert(
+    avertissements.some((a) => a.includes('Traefik') && a.includes('domaine')),
+    "devrait avertir de l'absence de domaine"
+  )
 })
 
 console.log('\n--- validerServices ---')
@@ -265,6 +345,35 @@ test('portsHoteUtilises recense tous les ports occupés', () => {
   const services = [serviceBase({ ports: [{ host: '3000', container: '3000' }] })]
   const utilises = portsHoteUtilises(services)
   assert(utilises.has(3000))
+})
+
+console.log('\n--- stacks.js (intégrité du catalogue) ---')
+
+test('chaque stack a un id unique', () => {
+  const ids = STACKS.map((s) => s.id)
+  const doublons = ids.filter((id, i) => ids.indexOf(id) !== i)
+  assert(doublons.length === 0, `id(s) en double : ${[...new Set(doublons)].join(', ')}`)
+})
+
+test('chaque stack a au moins un service avec nom et image', () => {
+  for (const stack of STACKS) {
+    assert(stack.services.length > 0, `la stack "${stack.id}" n'a aucun service`)
+    for (const s of stack.services) {
+      assert(s.name && s.name.trim() !== '', `un service de "${stack.id}" n'a pas de nom`)
+      assert(s.image && s.image.trim() !== '', `le service "${s.name}" de "${stack.id}" n'a pas d'image`)
+    }
+  }
+})
+
+test('les dépendances (dependsOn) déclarées dans une stack pointent vers un service existant de la même stack', () => {
+  for (const stack of STACKS) {
+    const noms = new Set(stack.services.map((s) => s.name))
+    for (const s of stack.services) {
+      for (const dep of s.dependsOn || []) {
+        assert(noms.has(dep), `"${stack.id}" : "${s.name}" dépend de "${dep}", absent de la stack`)
+      }
+    }
+  }
 })
 
 console.log(`\n${nbTests - nbEchecs}/${nbTests} tests réussis.`)
