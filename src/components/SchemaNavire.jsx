@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useMemo, useState, useRef } from 'react'
 import { grouperParReseau, construireLiens, calculerCharge } from '../core/topologie.js'
 import { deviner_teinte } from '../core/catalogue.js'
 
@@ -64,11 +64,57 @@ function cheminCourbe(x1, y1, x2, y2) {
 
 function SchemaNavire({ services, networks }) {
   const [survole, setSurvole] = useState(null)
+  const svgRef = useRef(null)
 
   const groupes = useMemo(() => grouperParReseau(services, networks), [services, networks])
   const liens = useMemo(() => construireLiens(services), [services])
   const charge = useMemo(() => calculerCharge(services), [services])
   const layout = useMemo(() => calculerLayout(groupes), [groupes])
+
+  // Exporte le schéma en fichier .svg autonome : les classes CSS du schéma
+  // dépendent de variables (--ink, --docker...) définies sur :root dans
+  // index.css, absentes d'un fichier ouvert seul — on les résout donc ici
+  // en couleurs concrètes (selon le thème actif) avant de sérialiser.
+  function exporterSvg() {
+    const svgEl = svgRef.current
+    if (!svgEl) return
+    const clone = svgEl.cloneNode(true)
+    clone.setAttribute('xmlns', 'http://www.w3.org/2000/svg')
+
+    const cs = getComputedStyle(document.documentElement)
+    const val = (nom, repli) => (cs.getPropertyValue(nom) || '').trim() || repli
+    const sombre = document.documentElement.getAttribute('data-theme') === 'sombre'
+
+    const style = document.createElementNS('http://www.w3.org/2000/svg', 'style')
+    style.textContent = `
+      .groupe-rect { fill: ${sombre ? 'rgba(74, 169, 255, 0.06)' : 'rgba(36, 150, 237, 0.05)'}; stroke: ${val('--line', '#d8dee8')}; stroke-width: 1.5; stroke-dasharray: 6 5; }
+      .groupe-defaut { fill: rgba(139, 160, 176, 0.05); }
+      .groupe-label { fill: ${val('--muted', '#6b7280')}; font-size: 11px; font-family: monospace; letter-spacing: 0.03em; }
+      .lien-dependance { stroke: ${val('--line-strong', '#b8c2d0')}; stroke-width: 1.5; fill: none; }
+      .lien-actif { stroke: ${val('--docker', '#2496ed')}; stroke-width: 2.4; }
+      .conteneur-svg-nom { fill: ${val('--ink', '#12181f')}; font-size: 12px; font-weight: 700; font-family: sans-serif; }
+      .conteneur-svg-image { fill: ${val('--muted', '#6b7280')}; font-size: 9.5px; font-family: monospace; }
+      .conteneur-svg-port { fill: ${val('--docker', '#2496ed')}; font-size: 9.5px; font-family: monospace; font-weight: 600; }
+    `
+    clone.insertBefore(style, clone.firstChild)
+
+    const fond = document.createElementNS('http://www.w3.org/2000/svg', 'rect')
+    fond.setAttribute('x', '0')
+    fond.setAttribute('y', '0')
+    fond.setAttribute('width', '100%')
+    fond.setAttribute('height', '100%')
+    fond.setAttribute('fill', val('--panel', '#ffffff'))
+    clone.insertBefore(fond, clone.firstChild)
+
+    const source = '<?xml version="1.0" standalone="no"?>\n' + new XMLSerializer().serializeToString(clone)
+    const blob = new Blob([source], { type: 'image/svg+xml' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = 'dockerforge-schema.svg'
+    a.click()
+    URL.revokeObjectURL(url)
+  }
 
   if (services.length === 0) {
     return (
@@ -106,8 +152,15 @@ function SchemaNavire({ services, networks }) {
         </div>
       </div>
 
+      <div className="schema-bandeau-outils">
+        <button type="button" className="btn-discret" onClick={exporterSvg}>
+          ⬇ Exporter le schéma en .svg
+        </button>
+      </div>
+
       <div className="schema-scroll">
         <svg
+          ref={svgRef}
           viewBox={`0 0 ${largeurTotale} ${hauteurTotale}`}
           width="100%"
           height={Math.min(hauteurTotale, 520)}

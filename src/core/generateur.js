@@ -52,7 +52,7 @@ export function auditSecurite(services, options = {}) {
 
     const secretsService = (s.env || []).filter((e) => e.key && estSecret(e.key, optsSecret))
     if (!extraireSecrets) secretsEnClair += secretsService.length
-    motsDePasseParDefaut += secretsService.filter((e) => e.value === 'change_moi').length
+    motsDePasseParDefaut += secretsService.filter((e) => estValeurFaible(e.value)).length
 
     if (s.image && (tagImage(s.image) === null || tagImage(s.image) === 'latest')) tagsNonFiges += 1
   }
@@ -91,6 +91,30 @@ export function estSecret(cle, options = {}) {
   return /PASSWORD|SECRET|TOKEN|_PASS$|API_KEY|PRIVATE|(^|_)KEY$/i.test(cle)
 }
 
+// Génère un mot de passe aléatoire robuste (32 caractères, alphanumérique
+// sans caractères ambigus type 0/O ou 1/l), utilisable partout où il faut
+// remplacer une valeur d'exemple par un vrai secret.
+export function genererMotDePasse() {
+  const alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789'
+  const tableau = new Uint32Array(32)
+  crypto.getRandomValues(tableau)
+  return Array.from(tableau, (n) => alphabet[n % alphabet.length]).join('')
+}
+
+// Reconnaît une valeur de secret "faible" : vide, ou un des mots de passe
+// d'exemple utilisés par les stacks prêtes à l'emploi de DockerForge
+// (change_moi, admin, password...) — sert à ne régénérer que ce qui a
+// vraiment besoin de l'être, sans écraser un mot de passe déjà personnalisé.
+export function estValeurFaible(valeur) {
+  const v = (valeur || '').trim().toLowerCase()
+  if (v === '') return true
+  if (v.startsWith('change_moi') || v.startsWith('change-moi') || v.startsWith('changeme')) return true
+  return [
+    'change_moi', 'changeme', 'change-me', 'changer_moi', 'password',
+    'admin', 'root', '123456', 'secret', 'default', 'demo', 'test',
+  ].includes(v)
+}
+
 // Un volume est "nommé" (géré par Docker) si sa source ne commence pas par
 // ./ ../ / ~ — sinon c'est un montage lié (bind mount) vers un dossier local.
 export function estVolumeNomme(volumeStr) {
@@ -110,6 +134,176 @@ export function collecterVolumesNommes(services) {
     }
   }
   return noms
+}
+
+// Nettoie un nom de service pour l'utiliser comme identifiant de routeur
+// Traefik (uniquement lettres/chiffres/tirets, comme l'exige Traefik).
+function nomRouteurTraefik(nom) {
+  const propre = String(nom || 'service').toLowerCase().replace(/[^a-z0-9-]+/g, '-').replace(/^-+|-+$/g, '')
+  return propre || 'service'
+}
+
+// Détermine le port interne à exposer via Traefik : celui saisi manuellement
+// si présent, sinon le premier port conteneur déclaré, sinon 80 par défaut.
+function portConteneurTraefik(service) {
+  const portManuel = service.traefik && String(service.traefik.port || '').trim()
+  if (portManuel) return portManuel
+  const premierPort = (service.ports || []).find((p) => p.container && String(p.container).trim() !== '')
+  return premierPort ? String(premierPort.container).trim() : '80'
+}
+
+// Construit les labels Docker que Traefik (v2+) lit pour router automatique-
+// ment le trafic HTTPS vers ce service par nom de domaine. Renvoie un tableau
+// vide si l'option n'est pas activée ou si aucun domaine n'est renseigné (les
+// labels seraient invalides/inutiles sans domaine).
+export function construireLabelsTraefik(service) {
+  if (!service.traefik || !service.traefik.active) return []
+  const domaine = (service.traefik.domaine || '').trim()
+  if (!domaine) return []
+  const routeur = nomRouteurTraefik(service.name)
+  const port = portConteneurTraefik(service)
+  return [
+    'traefik.enable=true',
+    `traefik.http.routers.${routeur}.rule=Host(\`${domaine}\`)`,
+    `traefik.http.routers.${routeur}.entrypoints=websecure`,
+    `traefik.http.routers.${routeur}.tls.certresolver=letsencrypt`,
+    `traefik.http.services.${routeur}.loadbalancer.server.port=${port}`,
+  ]
+}
+
+// Nettoie un nom de service pour l'utiliser comme nom de ressource
+// Kubernetes (RFC 1123 : minuscules, chiffres, tirets uniquement).
+function nomK8s(nom) {
+  const propre = String(nom || 'service').toLowerCase().replace(/[^a-z0-9-]+/g, '-').replace(/^-+|-+$/g, '')
+  return propre || 'service'
+}
+
+// Encode une chaîne en base64 en gérant correctement l'UTF-8 (accents,
+// emojis...), utilisable aussi bien dans le navigateur qu'en Node (tests).
+function base64Utf8(str) {
+  try {
+    return btoa(unescape(encodeURIComponent(str)))
+  } catch {
+    return btoa(String(str))
+  }
+}
+
+// Génère un manifeste Kubernetes basique (Deployment + Service, et
+// éventuellement un Secret) pour chaque conteneur — un point de départ pour
+// migrer vers un cluster, pas un export production-ready : pas de
+// PersistentVolumeClaim ni d'Ingress générés automatiquement.
+export function buildKubernetesManifests(services, options = {}) {
+  const { extraireSecrets = false, secretsInclus = [], secretsExclus = [] } = options
+  const optsSecret = { inclusions: secretsInclus, exclusions: secretsExclus }
+
+  if (!services || services.length === 0) {
+    return '# Ajoute au moins un conteneur pour générer les manifestes Kubernetes.\n'
+  }
+
+  const documents = [
+    [
+      '# Manifestes Kubernetes générés par DockerForge — un point de départ, à adapter :',
+      "# - le stockage persistant (PersistentVolumeClaim) n'est PAS généré, les volumes",
+      '#   Docker déclarés ici doivent être recréés manuellement selon ton cluster ;',
+      "# - aucune Ingress n'est créée : les Services sont en ClusterIP, expose-les avec",
+      "#   \"kubectl port-forward\", un Ingress, ou en changeant le type de Service ;",
+      '# - vérifie les limites de ressources (requests/limits) avant un déploiement réel.',
+    ].join('\n'),
+  ]
+
+  for (const service of services) {
+    const nom = nomK8s(service.name)
+    const secretsService = (service.env || []).filter((e) => e.key && estSecret(e.key, optsSecret))
+    const envNormal = (service.env || []).filter((e) => e.key && !estSecret(e.key, optsSecret))
+    const utiliseSecret = extraireSecrets && secretsService.length > 0
+    const portsConteneur = (service.ports || []).filter((p) => p.container && String(p.container).trim() !== '')
+
+    if (utiliseSecret) {
+      const lignesSecret = [
+        'apiVersion: v1',
+        'kind: Secret',
+        'metadata:',
+        `  name: ${nom}-secret`,
+        '  labels:',
+        `    app: ${nom}`,
+        'type: Opaque',
+        'data:',
+        ...secretsService.map((e) => `  ${e.key}: ${base64Utf8(e.value || '')}`),
+      ]
+      documents.push(lignesSecret.join('\n'))
+    }
+
+    const lignes = [
+      'apiVersion: apps/v1',
+      'kind: Deployment',
+      'metadata:',
+      `  name: ${nom}`,
+      '  labels:',
+      `    app: ${nom}`,
+      'spec:',
+      '  replicas: 1',
+      '  selector:',
+      '    matchLabels:',
+      `      app: ${nom}`,
+      '  template:',
+      '    metadata:',
+      '      labels:',
+      `        app: ${nom}`,
+      '    spec:',
+      '      containers:',
+      `        - name: ${nom}`,
+      `          image: ${yamlValue(service.image || '')}`,
+    ]
+    if (portsConteneur.length > 0) {
+      lignes.push('          ports:')
+      for (const p of portsConteneur) {
+        lignes.push(`            - containerPort: ${p.container}`)
+      }
+    }
+    if (envNormal.length > 0 || secretsService.length > 0) {
+      lignes.push('          env:')
+      for (const e of envNormal) {
+        lignes.push(`            - name: ${e.key}`)
+        lignes.push(`              value: ${yamlValue(e.value || '')}`)
+      }
+      for (const e of secretsService) {
+        lignes.push(`            - name: ${e.key}`)
+        if (utiliseSecret) {
+          lignes.push('              valueFrom:')
+          lignes.push('                secretKeyRef:')
+          lignes.push(`                  name: ${nom}-secret`)
+          lignes.push(`                  key: ${e.key}`)
+        } else {
+          lignes.push(`              value: ${yamlValue(e.value || '')}`)
+        }
+      }
+    }
+    if (service.memLimit || service.cpus) {
+      lignes.push('          resources:')
+      lignes.push('            limits:')
+      if (service.memLimit) lignes.push(`              memory: ${yamlValue(service.memLimit)}`)
+      if (service.cpus) lignes.push(`              cpu: ${yamlValue(String(service.cpus))}`)
+    }
+    documents.push(lignes.join('\n'))
+
+    if (portsConteneur.length > 0) {
+      const lignesService = [
+        'apiVersion: v1',
+        'kind: Service',
+        'metadata:',
+        `  name: ${nom}`,
+        'spec:',
+        '  selector:',
+        `    app: ${nom}`,
+        '  ports:',
+        ...portsConteneur.flatMap((p) => [`    - port: ${p.container}`, `      targetPort: ${p.container}`]),
+        '  type: ClusterIP',
+      ]
+      documents.push(lignesService.join('\n'))
+    }
+  }
+
+  return documents.join('\n---\n') + '\n'
 }
 
 export function buildDockerCompose(services, options = {}) {
@@ -206,6 +400,14 @@ export function buildDockerCompose(services, options = {}) {
       }
     }
 
+    const labelsTraefik = construireLabelsTraefik(service)
+    if (labelsTraefik.length > 0) {
+      lines.push('    labels:')
+      for (const l of labelsTraefik) {
+        lines.push(`      - ${yamlValue(l)}`)
+      }
+    }
+
     lines.push(`    restart: ${service.restart || 'unless-stopped'}`)
     lines.push('')
   }
@@ -215,6 +417,9 @@ export function buildDockerCompose(services, options = {}) {
     for (const net of options.networks) {
       lines.push(`  ${net.nom}:`)
       lines.push(`    driver: ${net.driver || 'bridge'}`)
+      if (net.interne) {
+        lines.push('    internal: true')
+      }
     }
     lines.push('')
   }
@@ -280,7 +485,7 @@ export function buildDockerRunScript(services, options = {}) {
   if (networks.length > 0) {
     lignes.push('# --- Réseaux personnalisés (à exécuter une seule fois) ---')
     for (const n of networks) {
-      lignes.push(`docker network create --driver ${n.driver || 'bridge'} ${shValue(n.nom)}`)
+      lignes.push(`docker network create --driver ${n.driver || 'bridge'}${n.interne ? ' --internal' : ''} ${shValue(n.nom)}`)
     }
     lignes.push('')
   }
@@ -314,6 +519,9 @@ export function buildDockerRunScript(services, options = {}) {
     }
     for (const e of normalEnv) {
       parts.push(`-e ${e.key}=${shValue(e.value || '')}`)
+    }
+    for (const l of construireLabelsTraefik(service)) {
+      parts.push(`-l ${shValue(l)}`)
     }
     if (service.healthcheck && service.healthcheck.enabled && service.healthcheck.test) {
       parts.push(`--health-cmd ${shValue(service.healthcheck.test)}`)
@@ -437,11 +645,17 @@ export function validerServices(services, options = {}) {
     }
 
     const motsDePasseParDefaut = (service.env || []).filter(
-      (e) => e.key && estSecret(e.key, optsSecret) && e.value === 'change_moi'
+      (e) => e.key && estSecret(e.key, optsSecret) && estValeurFaible(e.value)
     )
     if (motsDePasseParDefaut.length > 0) {
       avertissements.push(
-        `Le service "${label}" utilise encore la valeur par défaut "change_moi" pour ${motsDePasseParDefaut.map((e) => e.key).join(', ')} — génère un vrai mot de passe avant de déployer.`
+        `Le service "${label}" utilise encore une valeur d'exemple (${motsDePasseParDefaut.map((e) => e.key).join(', ')}) — utilise le bouton 🎲 ou "Sécuriser tous les mots de passe faibles" avant de déployer.`
+      )
+    }
+
+    if (service.traefik && service.traefik.active && !(service.traefik.domaine || '').trim()) {
+      avertissements.push(
+        `Le service "${label}" a "Exposer via Traefik" activé mais aucun nom de domaine renseigné — aucun label ne sera généré tant que le domaine est vide.`
       )
     }
 

@@ -7,7 +7,7 @@ import NetworkManager from './components/NetworkManager.jsx'
 import GuideUtilisationModal from './components/GuideUtilisationModal.jsx'
 import GuideInstallationModal from './components/GuideInstallationModal.jsx'
 import ProjectManager from './components/ProjectManager.jsx'
-import { buildDockerCompose, validerServices, buildEnvFiles, buildDockerRunScript, suggererDependancesManquantes, auditSecurite } from './core/generateur.js'
+import { buildDockerCompose, validerServices, buildEnvFiles, buildDockerRunScript, buildKubernetesManifests, suggererDependancesManquantes, auditSecurite, estSecret, genererMotDePasse, estValeurFaible } from './core/generateur.js'
 import { portsHoteUtilises, trouverPortLibre } from './core/catalogue.js'
 import { construireStack } from './core/stacks.js'
 import { importerDockerCompose } from './core/importateur.js'
@@ -17,6 +17,8 @@ import MesModeles from './components/MesModeles.jsx'
 import { siDocker } from 'simple-icons'
 import Icon from './components/Icon.jsx'
 import SchemaNavire from './components/SchemaNavire.jsx'
+import CommandPalette from './components/CommandPalette.jsx'
+import ShortcutsModal from './components/ShortcutsModal.jsx'
 
 // App.jsx — composant racine de DockerForge
 function App() {
@@ -29,6 +31,8 @@ function App() {
   const [serviceEnEditionId, setServiceEnEditionId] = useState(null)
   const [undo, setUndo] = useState(null)
   const undoTimeoutRef = useRef(null)
+  const [paletteOuverte, setPaletteOuverte] = useState(false)
+  const [raccourcisOuverts, setRaccourcisOuverts] = useState(false)
 
   // Déclenche un toast "annuler" après une suppression : garde l'action de
   // restauration en mémoire pendant quelques secondes avant de l'oublier.
@@ -190,6 +194,12 @@ function App() {
     }))
   }
 
+  function basculerReseauInterne(nom) {
+    patcherProjetActif((p) => ({
+      networks: p.networks.map((n) => (n.nom === nom ? { ...n, interne: !n.interne } : n)),
+    }))
+  }
+
   // --- Import ---
 
   function importerFichier(e) {
@@ -340,6 +350,35 @@ function App() {
     )
   }
 
+  // Parcourt tous les services du projet actif et régénère un mot de passe
+  // aléatoire robuste pour chaque variable sensible dont la valeur est
+  // vide ou un mot de passe d'exemple connu (change_moi, admin...) — sans
+  // toucher aux valeurs déjà personnalisées par la personne.
+  function securiserTousLesSecrets() {
+    const projetCourantId = etat.actifId
+    const servicesAvant = services
+    let nbChanges = 0
+    const servicesApres = services.map((s) => {
+      const env = (s.env || []).map((e) => {
+        if (estSecret(e.key, { inclusions: secretsInclus, exclusions: secretsExclus }) && estValeurFaible(e.value)) {
+          nbChanges += 1
+          return { ...e, value: genererMotDePasse() }
+        }
+        return e
+      })
+      return { ...s, env }
+    })
+    if (nbChanges === 0) {
+      declencherUndo('Aucun mot de passe faible trouvé — tout est déjà personnalisé.', () => {})
+      return
+    }
+    patcherProjetActif({ services: servicesApres })
+    declencherUndo(
+      `${nbChanges} mot${nbChanges > 1 ? 's de passe' : ' de passe'} sécurisé${nbChanges > 1 ? 's' : ''} — pense à les reporter dans ta configuration si besoin.`,
+      () => patcherProjet(projetCourantId, () => ({ services: servicesAvant }))
+    )
+  }
+
   function setNomProjet(valeur) {
     patcherProjetActif({ nomProjet: valeur })
   }
@@ -395,6 +434,10 @@ function App() {
     () => buildDockerRunScript(services, { extraireSecrets, networks, secretsInclus, secretsExclus }),
     [services, extraireSecrets, networks, secretsInclus, secretsExclus]
   )
+  const k8sManifests = useMemo(
+    () => buildKubernetesManifests(services, { extraireSecrets, secretsInclus, secretsExclus }),
+    [services, extraireSecrets, secretsInclus, secretsExclus]
+  )
 
   const nbPorts = services.reduce(
     (acc, s) => acc + (s.ports || []).filter((p) => p.host && p.container).length,
@@ -422,18 +465,27 @@ function App() {
   useEffect(() => {
     function onKeyDown(e) {
       const ctrlOuCmd = e.ctrlKey || e.metaKey
-      if (ctrlOuCmd && e.key.toLowerCase() === 's') {
+      const cibleEstUnChamp = ['INPUT', 'TEXTAREA', 'SELECT'].includes(e.target.tagName) || e.target.isContentEditable
+      if (ctrlOuCmd && e.key.toLowerCase() === 'k') {
+        e.preventDefault()
+        setPaletteOuverte((o) => !o)
+      } else if (ctrlOuCmd && e.key.toLowerCase() === 's') {
         e.preventDefault()
         telechargerComposeRapide()
+      } else if (e.key === '?' && !cibleEstUnChamp) {
+        e.preventDefault()
+        setRaccourcisOuverts((o) => !o)
       } else if (e.key === 'Escape') {
-        if (serviceEnEditionId) annulerEdition()
+        if (paletteOuverte) setPaletteOuverte(false)
+        else if (raccourcisOuverts) setRaccourcisOuverts(false)
+        else if (serviceEnEditionId) annulerEdition()
         else if (guideUtilisationOuvert) setGuideUtilisationOuvert(false)
         else if (guideInstallationOuvert) setGuideInstallationOuvert(false)
       }
     }
     window.addEventListener('keydown', onKeyDown)
     return () => window.removeEventListener('keydown', onKeyDown)
-  }, [yaml, services.length, serviceEnEditionId, guideUtilisationOuvert, guideInstallationOuvert])
+  }, [yaml, services.length, serviceEnEditionId, guideUtilisationOuvert, guideInstallationOuvert, paletteOuverte, raccourcisOuverts])
 
   return (
     <div className="app">
@@ -475,6 +527,12 @@ function App() {
           </div>
 
           <div className="guide-boutons">
+            <button className="btn-discret btn-guide" onClick={() => setPaletteOuverte(true)}>
+              ⌘K Palette de commandes
+            </button>
+            <button className="btn-discret btn-guide" onClick={() => setRaccourcisOuverts(true)}>
+              ⌨️ Raccourcis
+            </button>
             <button className="btn-discret btn-guide" onClick={() => setGuideUtilisationOuvert(true)}>
               📖 Guide d'utilisation
             </button>
@@ -599,7 +657,7 @@ function App() {
 
         {ongletActif === 'reseaux' && (
           <div className="colonne colonne-pleine">
-            <NetworkManager networks={networks} onAjouter={ajouterReseau} onSupprimer={supprimerReseau} />
+            <NetworkManager networks={networks} onAjouter={ajouterReseau} onSupprimer={supprimerReseau} onBasculerInterne={basculerReseauInterne} />
             {networks.length > 0 && services.length > 0 && (
               <div className="reseaux-recap">
                 <span className="section-tag">RÉPARTITION</span>
@@ -623,6 +681,7 @@ function App() {
             <Preview
               yaml={yaml}
               dockerRunScript={dockerRunScript}
+              k8sManifests={k8sManifests}
               envFiles={envFiles}
               erreurs={erreurs}
               avertissements={avertissements}
@@ -637,6 +696,7 @@ function App() {
               onSupprimerInclusion={supprimerInclusionSecret}
               onAjouterExclusion={ajouterExclusionSecret}
               onSupprimerExclusion={supprimerExclusionSecret}
+              onSecuriserSecrets={securiserTousLesSecrets}
             />
           </div>
         )}
@@ -648,6 +708,21 @@ function App() {
 
       <GuideUtilisationModal ouvert={guideUtilisationOuvert} onFermer={() => setGuideUtilisationOuvert(false)} />
       <GuideInstallationModal ouvert={guideInstallationOuvert} onFermer={() => setGuideInstallationOuvert(false)} />
+
+      <ShortcutsModal ouvert={raccourcisOuverts} onFermer={() => setRaccourcisOuverts(false)} />
+
+      <CommandPalette
+        ouvert={paletteOuverte}
+        onFermer={() => setPaletteOuverte(false)}
+        onChargerStack={chargerStack}
+        onNaviguerOnglet={setOngletActif}
+        onNouveauProjet={nouveauProjet}
+        onBasculerTheme={basculerTheme}
+        onTelechargerCompose={telechargerComposeRapide}
+        onToutEffacer={reinitialiser}
+        onOuvrirRaccourcis={() => setRaccourcisOuverts(true)}
+        onSecuriserSecrets={securiserTousLesSecrets}
+      />
 
       {undo && (
         <div className="toast-undo" role="status">

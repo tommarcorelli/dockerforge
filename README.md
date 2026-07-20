@@ -102,6 +102,50 @@ dockerforge/
 - Politique de redémarrage (`restart`), dépendances (`depends_on`),
   vérification de santé (`healthcheck`), limites de ressources (`mem_limit`,
   `cpus`), profils d'activation (`profiles`).
+- **Reverse proxy Traefik en un clic** : coche "Exposer via Traefik", indique
+  un nom de domaine (+ port interne optionnel), et les labels Docker
+  (`traefik.enable`, routeur, entrypoint HTTPS, certresolver Let's Encrypt)
+  sont générés automatiquement dans le YAML *et* dans le script `docker run`
+  équivalent. Un avertissement apparaît si l'option est activée sans domaine.
+
+**Export du schéma en SVG (nouveau)**
+- Bouton "⬇ Exporter le schéma en .svg" au-dessus du schéma des conteneurs
+  (onglet Réseaux) : télécharge un fichier `.svg` autonome (couleurs du
+  thème actif figées en dur, lisible même hors de l'appli), pour
+  l'intégrer dans une documentation par exemple.
+
+**Export Kubernetes (nouveau)**
+- Un 3e onglet dans l'Aperçu génère un manifeste Kubernetes basique
+  (`Deployment` + `Service` par conteneur, `Secret` si "Extraire les
+  secrets" est actif) à partir des mêmes services — un point de départ pour
+  migrer vers un cluster, pas un export production-ready (pas de
+  `PersistentVolumeClaim` ni d'`Ingress` générés). Inclus dans le zip
+  complet (`k8s.yaml`) et téléchargeable seul.
+
+**Sécurisation des secrets**
+- Génération d'un mot de passe aléatoire robuste par champ (déjà existant),
+  désormais complétée par une action globale **"🎲 Sécuriser tous les mots
+  de passe faibles"** (palette de commandes, ou bouton direct dans le
+  mini-audit sécurité) : régénère en un clic tous les secrets encore à leur
+  valeur d'exemple (`change_moi`, `admin`, vide...) dans tous les services
+  du projet, sans toucher à ceux déjà personnalisés. Annulable.
+
+**Réseaux Docker**
+- Réseaux personnalisés isolés par service, avec option **réseau interne**
+  (`internal: true`) pour couper l'accès sortant à internet d'un réseau —
+  utile pour isoler une base de données. Import/export fidèle depuis un
+  `docker-compose.yml` existant.
+
+**Aide-mémoire clavier**
+- La touche **`?`** (hors saisie de texte) affiche un aide-mémoire des
+  raccourcis disponibles (Ctrl+K, Ctrl+S, Échap...), aussi accessible via un
+  bouton dans l'en-tête ou la palette de commandes.
+- **Ctrl/Cmd+K** ouvre une palette de recherche unifiée (façon éditeur de
+  code) : charger n'importe quelle stack, changer d'onglet, créer un
+  nouveau projet, basculer le thème, télécharger le compose ou tout effacer
+  — navigable entièrement au clavier (↑↓, Entrée, Échap). Un bouton dans
+  l'en-tête l'ouvre aussi à la souris pour ceux qui ne connaissent pas le
+  raccourci.
 
 **Réseaux**
 - Créer des réseaux Docker personnalisés et assigner chaque service à un ou
@@ -109,13 +153,22 @@ dockerforge/
   répartition des services par réseau.
 
 **Stacks & import**
-- **50 stacks prêtes à l'emploi**, en un clic, réparties par usage :
+- **79 stacks prêtes à l'emploi**, filtrables par catégorie (Web & CMS,
+  Données & dev, Réseau & sécurité, Monitoring & maintenance,
+  Auto-hébergement perso, Communication & outils) en plus de la recherche
+  texte libre :
   - *Web/CMS* : LAMP, LEMP, WordPress, Ghost, Strapi, Directus.
-  - *Données/dev* : Node+Mongo, Metabase, Gitea, GitLab, SonarQube, pgAdmin,
-    Redmine, Jupyter, PocketBase, Neo4j, Kafka+Zookeeper, Jenkins, RabbitMQ.
-  - *Monitoring/logs* : Monitoring léger, Observabilité complète, ELK, Uptime Kuma, Matomo, Umami, changedetection.io.
+  - *Données/dev* : Node+Mongo, Metabase, Gitea (2 variantes), GitLab,
+    SonarQube, pgAdmin, Redmine, Jupyter, PocketBase, Neo4j, Kafka+Zookeeper,
+    Jenkins, RabbitMQ, Baserow, NocoDB, MinIO, Code Server.
+  - *Réseau/reverse proxy* : Traefik + démo whoami, **Traefik + Authelia**
+    (2FA devant vos services), Tailscale (VPN mesh).
+  - *Monitoring/logs* : Monitoring léger, Observabilité complète, ELK,
+    Journalisation (Loki + Promtail + Grafana), Uptime Kuma, Matomo,
+    Umami, changedetection.io, **Watchtower** (mise à jour auto des images).
   - *Auto-hébergement perso* : Nextcloud, Pi-hole, Home Assistant, Jellyfin,
-    Plex, Syncthing, Vaultwarden, Linkding, Firefly III, Mealie, Grocy, Homepage.
+    Plex, Syncthing, Vaultwarden, Linkding, Firefly III, Mealie, Grocy,
+    Homepage, Duplicati, Trilium Notes, Calibre-Web, FreshRSS, Excalidraw.
   - *Communication/outils* : n8n, Mattermost, Wiki.js, BookStack, Mailpit,
     Meilisearch, WireGuard Easy, Keycloak, Portainer, Redis+RedisInsight,
     Miniflux, Shlink.
@@ -175,6 +228,64 @@ Correctifs récents._
 
 ## Correctifs récents
 
+- **Export SVG du schéma** : ajouté (et corrigé en cours de route — la
+  première version avait la fonction `exporterSvg()` et la `ref` définies
+  mais jamais reliées au bouton/au `<svg>`, donc inutilisables ; c'est
+  réparé). Bouton "⬇ Exporter le schéma en .svg" au-dessus du schéma des
+  conteneurs, produit un fichier autonome avec les couleurs du thème actif
+  figées en dur.
+- **Export Kubernetes** : ajouté — 3e onglet dans l'Aperçu (☸ Kubernetes),
+  génère un `Deployment` + `Service` par conteneur (et un `Secret` si
+  "Extraire les secrets" est actif), inclus dans le zip complet. Point de
+  départ pour un cluster, pas un export production-ready (pas de PVC ni
+  d'Ingress). `estValeurFaible` réutilisé aussi dans `auditSecurite` pour
+  détecter plus de mots de passe faibles qu'un simple `=== 'change_moi'`.
+- **Filtre par catégorie des stacks** : ajouté — avec 79 stacks, la liste
+  devenait longue à parcourir. Chips de filtre (Web & CMS, Données & dev,
+  Réseau & sécurité, Monitoring & maintenance, Auto-hébergement perso,
+  Communication & outils) combinables avec la recherche texte, au-dessus
+  de la liste de stacks. Test garde-fou : chaque stack doit avoir une
+  catégorie explicitement assignée (pas de repli silencieux).
+- **Sécurisation globale des secrets** : ajouté — action "🎲 Sécuriser tous
+  les mots de passe faibles" (palette de commandes + bouton direct dans le
+  mini-audit) qui régénère en un clic toutes les valeurs de secret encore
+  à `change_moi`/`admin`/vide dans tout le projet, sans écraser celles déjà
+  personnalisées. Annulable comme les autres actions groupées.
+- **Centrage du hero** : corrigé — `.colonne` (colonnes de la grille
+  Services/Aperçu) n'avait pas `min-width: 0`, ce qui laissait le contenu
+  large de l'aperçu YAML forcer un débordement horizontal de toute la page
+  et décaler visuellement le hero vers la gauche sur grand écran. Ajout
+  d'un filet de sécurité (`overflow-x: hidden` sur `html, body`) et d'un
+  double centrage du hero via flexbox en plus du `margin: 0 auto` existant.
+- **Réseaux internes** : ajouté — case "Réseau interne (pas d'accès sortant
+  à internet)" dans le gestionnaire de réseaux, génère `internal: true`
+  dans le `docker-compose.yml` et `--internal` dans `dockerforge-run.sh`.
+  Bascule possible après création, import fidèle depuis un compose existant.
+- **Aide-mémoire clavier** : ajouté — touche `?` (hors saisie de texte)
+  ouvre une modale listant les raccourcis disponibles.
+- **Vague 8 de stacks** (73 → 79) : Watchtower, Traefik + Authelia (2FA),
+  MinIO, Code Server, FreshRSS, Excalidraw.
+- **Labels Traefik automatiques** : nouvelle option "Exposer via Traefik"
+  dans les options avancées de chaque service (domaine + port interne
+  optionnel) — génère les labels `traefik.enable`, routeur (règle `Host`),
+  entrypoint HTTPS et certresolver Let's Encrypt, aussi bien dans le YAML
+  que dans le script `docker run` équivalent (`-l`). Un avertissement
+  apparaît si l'option est activée sans domaine renseigné.
+- **Palette de commandes (Ctrl/Cmd+K)** : recherche unifiée façon éditeur de
+  code pour charger une stack, changer d'onglet, créer un projet, basculer
+  le thème, télécharger le compose ou tout effacer — navigable au clavier.
+- **Vague 7 de stacks** (65 → 73) : Traefik + whoami (démo du nouveau champ
+  reverse proxy), Baserow, NocoDB, Duplicati, Trilium Notes, Calibre-Web,
+  Journalisation (Loki + Promtail + Grafana), Tailscale.
+- **Id de stack dupliqué** : corrigé — deux stacks "Gitea" partageaient le
+  même identifiant interne (`gitea`), ce qui pouvait perturber leur
+  affichage ; la variante avec port SSH exposé porte maintenant l'id
+  `gitea-ssh`. Un test garde-fou empêche qu'un futur doublon d'id, un
+  service sans nom/image, ou une dépendance orpheline dans une stack ne
+  passe inaperçu.
+- **Micro-interactions** : légères animations au survol des cartes de
+  stacks/modèles et des boutons, style `focus-visible` cohérent sur tous
+  les éléments interactifs pour la navigation au clavier.
 - **Vague 6 de stacks** : GitLab, Jupyter, PocketBase, Plex, Neo4j,
   Kafka+Zookeeper, Jenkins, RabbitMQ — 8 stacks de plus (42 → 50).
 - **Recherche pour les stacks** : un champ de recherche est apparu

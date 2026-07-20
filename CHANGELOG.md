@@ -31,6 +31,60 @@ Résumé de tout ce qui a été ajouté/corrigé, dans l'ordre.
 
 ## Correctifs récents
 
+- **Export SVG du schéma** : ajouté, avec un bug de câblage corrigé au
+  passage (la `ref` et la fonction `exporterSvg()` avaient été écrites
+  mais jamais reliées au `<svg>`/au bouton dans un tour précédent — code
+  mort, sans impact visible mais inutilisable). Vérifié : plus aucune
+  fonction/ref ajoutée cette session n'est orpheline (grep de contrôle).
+- **Export Kubernetes** : ajouté — 3e onglet dans l'Aperçu (☸ Kubernetes),
+  `buildKubernetesManifests()` génère un `Deployment` + `Service` par
+  conteneur (et un `Secret` si "Extraire les secrets" est actif), inclus
+  dans le zip complet (`k8s.yaml`). Point de départ, pas un export
+  production-ready. `auditSecurite` utilise maintenant `estValeurFaible`
+  au lieu d'une simple égalité à `'change_moi'`.
+- **Filtre par catégorie des stacks** : ajouté — chips (Web & CMS, Données
+  & dev, Réseau & sécurité, Monitoring & maintenance, Auto-hébergement
+  perso, Communication & outils) combinables avec la recherche, sur les 79
+  stacks. `CATEGORIE_PAR_STACK` exporté depuis `stacks.js`, test garde-fou
+  de couverture complète.
+- **Sécurisation globale des secrets** : ajouté — "🎲 Sécuriser tous les
+  mots de passe faibles" (palette de commandes + bouton dans le mini-audit)
+  régénère en un clic les secrets encore à `change_moi`/`admin`/vide dans
+  tout le projet, sans écraser ceux déjà personnalisés. Annulable.
+  `genererMotDePasse` mutualisé dans `generateur.js` (plus de duplication
+  entre `ServiceForm.jsx` et l'action globale).
+- **Bug de centrage du hero corrigé** : la vraie cause était `.colonne`
+  (grille Services/Aperçu) sans `min-width: 0` — le contenu large de
+  l'aperçu YAML forçait un débordement horizontal de toute la page.
+  Ajout de `overflow-x: hidden` sur `html, body` et d'un double centrage
+  du hero via flexbox en plus du `margin: 0 auto` existant.
+- **Réseaux internes** : option "Réseau interne" par réseau Docker
+  (`internal: true` / `--internal`), bascule possible après création,
+  parsing fidèle à l'import.
+- **Aide-mémoire clavier** (`?`) : nouvelle modale listant les raccourcis.
+- **Vague 8 de stacks** (73 → 79) : Watchtower, Traefik + Authelia (2FA),
+  MinIO, Code Server, FreshRSS, Excalidraw.
+- **Labels Traefik automatiques** : ajouté — option "Exposer via Traefik"
+  par service (domaine + port interne optionnel), génère les labels
+  (`traefik.enable`, routeur, entrypoint HTTPS, certresolver Let's Encrypt)
+  dans le `docker-compose.yml` et dans `dockerforge-run.sh` (`-l`).
+  Avertissement de validation si activé sans domaine. Nouvelle stack
+  "Traefik (reverse proxy)" (Traefik + whoami) qui démontre la
+  fonctionnalité prête à charger.
+- **Palette de commandes (Ctrl/Cmd+K)** : ajoutée — nouveau composant
+  `CommandPalette.jsx`, recherche unifiée parmi les 73 stacks et les
+  actions rapides de l'appli (navigation d'onglet, nouveau projet, thème,
+  téléchargement, tout effacer), entièrement navigable au clavier.
+- **Vague 7 de stacks** (65 → 73) : Traefik + whoami, Baserow, NocoDB,
+  Duplicati, Trilium Notes, Calibre-Web, Journalisation (Loki + Promtail +
+  Grafana), Tailscale.
+- **Id de stack "gitea" dupliqué** : corrigé (renommé en `gitea-ssh` pour la
+  variante avec port SSH). Ajout de tests garde-fou sur l'intégrité du
+  catalogue de stacks (id unique, service avec nom/image, `dependsOn`
+  valide) pour éviter une régression similaire.
+- **Micro-animations & accessibilité clavier** : légères transitions au
+  survol des cartes, style `focus-visible` unifié sur tous les éléments
+  interactifs.
 - **Édition en place d'un service** : ajoutée (bouton ✎ dans la liste). En
   corrigeant les effets de bord : le service en cours d'édition ne pouvait
   plus se sélectionner lui-même comme dépendance ni se voir imposer un faux

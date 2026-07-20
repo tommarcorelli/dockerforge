@@ -30,6 +30,7 @@ function extraireReseauxTopLevel(networksDef) {
   return Object.entries(networksDef).map(([nom, def]) => ({
     nom: sanitizeNomReseau(nom),
     driver: (def && def.driver) || 'bridge',
+    interne: !!(def && def.internal),
   }))
 }
 

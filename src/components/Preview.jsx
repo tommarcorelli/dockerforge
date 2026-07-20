@@ -5,17 +5,18 @@ import Aide from './Aide.jsx'
 
 // Aperçu du docker-compose.yml généré, avec statut de validation
 function Preview({
-  yaml, dockerRunScript, envFiles, erreurs, avertissements, suggestions, audit, nbServices, extraireSecrets, onToggleSecrets,
+  yaml, dockerRunScript, k8sManifests, envFiles, erreurs, avertissements, suggestions, audit, nbServices, extraireSecrets, onToggleSecrets,
   secretsInclus, secretsExclus, onAjouterInclusion, onSupprimerInclusion, onAjouterExclusion, onSupprimerExclusion,
+  onSecuriserSecrets,
 }) {
   const [copie, setCopie] = useState(false)
-  const [vue, setVue] = useState('compose') // 'compose' | 'run'
+  const [vue, setVue] = useState('compose') // 'compose' | 'run' | 'k8s'
   const [reglagesSecretsOuverts, setReglagesSecretsOuverts] = useState(false)
   const [auditOuvert, setAuditOuvert] = useState(false)
   const [champInclusion, setChampInclusion] = useState('')
   const [champExclusion, setChampExclusion] = useState('')
   const pretAExpedier = nbServices > 0 && erreurs.length === 0
-  const contenuAffiche = vue === 'compose' ? yaml : dockerRunScript
+  const contenuAffiche = vue === 'compose' ? yaml : vue === 'run' ? dockerRunScript : k8sManifests
 
   function ajouterCle(e, valeur, setValeur, onAjouter) {
     e.preventDefault()
@@ -44,6 +45,7 @@ function Preview({
     const zip = new JSZip()
     zip.file('docker-compose.yml', yaml)
     zip.file('dockerforge-run.sh', dockerRunScript)
+    zip.file('k8s.yaml', k8sManifests)
 
     for (const f of envFiles || []) {
       zip.file(f.nom, f.contenu)
@@ -75,6 +77,10 @@ function Preview({
         "Une alternative sans docker-compose est incluse dans `dockerforge-run.sh`",
         '(commandes `docker run` équivalentes, une par service).',
         '',
+        "`k8s.yaml` contient un point de départ de manifestes Kubernetes",
+        "(Deployment + Service par conteneur) si tu déploies sur un cluster —",
+        'à adapter avant un usage en production (stockage persistant, Ingress...).',
+        '',
         'Généré avec DockerForge.',
         '',
       ].join('\n')
@@ -96,7 +102,7 @@ function Preview({
       <div className="apercu-entete">
         <div>
           <span className="apercu-tag">APERÇU</span>
-          <h2>{vue === 'compose' ? 'docker-compose.yml' : 'dockerforge-run.sh'}</h2>
+          <h2>{{ compose: 'docker-compose.yml', run: 'dockerforge-run.sh', k8s: 'k8s.yaml' }[vue]}</h2>
         </div>
         <div className={`statut-pastille ${pretAExpedier ? 'statut-ok' : 'statut-attente'}`}>
           {pretAExpedier ? 'PRÊT' : nbServices === 0 ? 'VIDE' : 'À CORRIGER'}
@@ -125,6 +131,11 @@ function Preview({
               </li>
               <li className={audit.motsDePasseParDefaut === 0 ? 'audit-ok' : 'audit-alerte'}>
                 {audit.motsDePasseParDefaut} mot{audit.motsDePasseParDefaut !== 1 ? 's' : ''} de passe encore à "change_moi"
+                {audit.motsDePasseParDefaut > 0 && onSecuriserSecrets && (
+                  <button type="button" className="btn-discret audit-action" onClick={onSecuriserSecrets}>
+                    🎲 Sécuriser maintenant
+                  </button>
+                )}
               </li>
               <li className={audit.tagsNonFiges === 0 ? 'audit-ok' : ''}>
                 {audit.tagsNonFiges} image{audit.tagsNonFiges !== 1 ? 's' : ''} sans version figée (tag "latest")
@@ -148,6 +159,13 @@ function Preview({
           onClick={() => setVue('run')}
         >
           ⌨ Commandes docker run
+        </button>
+        <button
+          type="button"
+          className={`apercu-onglet ${vue === 'k8s' ? 'apercu-onglet-actif' : ''}`}
+          onClick={() => setVue('k8s')}
+        >
+          ☸ Kubernetes
         </button>
       </div>
 
@@ -267,9 +285,13 @@ function Preview({
           <button className="btn-discret" onClick={() => telechargerFichier('docker-compose.yml', yaml)}>
             docker-compose.yml seul
           </button>
-        ) : (
+        ) : vue === 'run' ? (
           <button className="btn-discret" onClick={() => telechargerFichier('dockerforge-run.sh', dockerRunScript)}>
             dockerforge-run.sh seul
+          </button>
+        ) : (
+          <button className="btn-discret" onClick={() => telechargerFichier('k8s.yaml', k8sManifests)}>
+            k8s.yaml seul
           </button>
         )}
         <button className="btn-principal btn-expedier" onClick={telechargerTout} disabled={nbServices === 0}>

@@ -3,6 +3,50 @@
 
 import { healthcheckSuggere } from './catalogue.js'
 
+// Étiquettes affichées pour chaque catégorie de stack (filtre dans
+// StackPresets). Une catégorie manquante pour un id retombe sur "outils".
+export const CATEGORIE_LABELS = {
+  web: 'Web & CMS',
+  dev: 'Données & dev',
+  reseau: 'Réseau & sécurité',
+  monitoring: 'Monitoring & maintenance',
+  perso: 'Auto-hébergement perso',
+  outils: 'Communication & outils',
+}
+
+// Association id de stack -> catégorie, pour le filtre de StackPresets.
+// Tenue à jour manuellement (plus fiable qu'une déduction par mots-clés
+// sur la description) ; un test d'intégrité vérifie que chaque stack de
+// STACKS possède bien une entrée ici.
+export const CATEGORIE_PAR_STACK = {
+  lamp: 'web', wordpress: 'web', lemp: 'web', strapi: 'web', directus: 'web',
+  ghost: 'web', 'ghost-blog': 'web', prestashop: 'web', odoo: 'web',
+  monitoring: 'monitoring', observabilite: 'monitoring', elk: 'monitoring',
+  matomo: 'monitoring', 'uptime-kuma': 'monitoring', umami: 'monitoring',
+  changedetection: 'monitoring', zabbix: 'monitoring', portainer: 'monitoring',
+  'logs-loki': 'monitoring', watchtower: 'monitoring',
+  mean: 'dev', metabase: 'dev', gitea: 'dev', 'gitea-ssh': 'dev', gitlab: 'dev',
+  sonarqube: 'dev', pgadmin: 'dev', redmine: 'dev', jupyter: 'dev',
+  pocketbase: 'dev', neo4j: 'dev', kafka: 'dev', jenkins: 'dev', rabbitmq: 'dev',
+  'redis-insight': 'dev', meilisearch: 'dev', baserow: 'dev', nocodb: 'dev',
+  minio: 'dev', 'code-server': 'dev', 'ia-locale': 'dev',
+  keycloak: 'reseau', pihole: 'reseau', 'wireguard-easy': 'reseau', ldap: 'reseau',
+  authentification: 'reseau', vault: 'reseau', tailscale: 'reseau',
+  'traefik-demo': 'reseau', 'traefik-authelia': 'reseau',
+  'nextcloud-complet': 'perso', 'home-assistant': 'perso', jellyfin: 'perso',
+  vaultwarden: 'perso', syncthing: 'perso', linkding: 'perso', 'firefly-iii': 'perso',
+  mealie: 'perso', grocy: 'perso', homepage: 'perso', plex: 'perso', immich: 'perso',
+  paperless: 'perso', 'dashboard-maison': 'perso', duplicati: 'perso', trilium: 'perso',
+  'calibre-web': 'perso', freshrss: 'perso', excalidraw: 'perso',
+  n8n: 'outils', mailpit: 'outils', mattermost: 'outils', wikijs: 'outils',
+  bookstack: 'outils', miniflux: 'outils', shlink: 'outils', glpi: 'outils',
+  rocketchat: 'outils', discourse: 'outils',
+}
+
+export function categorieDe(stack) {
+  return CATEGORIE_PAR_STACK[stack.id] || 'outils'
+}
+
 export const STACKS = [
   {
     id: 'lamp',
@@ -1226,9 +1270,9 @@ export const STACKS = [
     ],
   },
   {
-    id: 'gitea',
-    nom: 'Git auto-hébergé (Gitea)',
-    description: 'Gitea + PostgreSQL — votre propre forge Git',
+    id: 'gitea-ssh',
+    nom: 'Git auto-hébergé (Gitea + SSH)',
+    description: 'Gitea + PostgreSQL — votre propre forge Git, avec le port SSH exposé pour git@',
     services: [
       {
         name: 'gitea', image: 'gitea/gitea:latest', ports: [{ host: 3000, container: 3000 }, { host: 2222, container: 22 }],
@@ -1333,6 +1377,223 @@ export const STACKS = [
       },
     ],
   },
+  {
+    id: 'traefik-demo',
+    nom: 'Traefik (reverse proxy)',
+    description: 'Traefik + service de démo "whoami", routé automatiquement par domaine via les labels générés par DockerForge',
+    services: [
+      {
+        name: 'traefik', image: 'traefik:latest',
+        ports: [{ host: 80, container: 80 }, { host: 8080, container: 8080 }],
+        volumes: ['/var/run/docker.sock:/var/run/docker.sock:ro'],
+        env: [
+          { key: 'TRAEFIK_PROVIDERS_DOCKER', value: 'true' },
+          { key: 'TRAEFIK_PROVIDERS_DOCKER_EXPOSEDBYDEFAULT', value: 'false' },
+          { key: 'TRAEFIK_ENTRYPOINTS_WEB_ADDRESS', value: ':80' },
+          { key: 'TRAEFIK_API_DASHBOARD', value: 'true' },
+          { key: 'TRAEFIK_API_INSECURE', value: 'true' },
+        ],
+        dependsOn: [],
+      },
+      {
+        name: 'whoami', image: 'traefik/whoami:latest', ports: [], volumes: [], env: [],
+        dependsOn: ['traefik'],
+        traefik: { active: true, domaine: 'whoami.localhost', port: '80' },
+      },
+    ],
+  },
+  {
+    id: 'baserow',
+    nom: 'Baserow',
+    description: "Alternative no-code à Airtable — base de données visuelle, image tout-en-un",
+    services: [
+      {
+        name: 'baserow', image: 'baserow/baserow:1-latest', ports: [{ host: 8082, container: 80 }],
+        volumes: ['./baserow-data:/baserow/data'],
+        env: [{ key: 'BASEROW_PUBLIC_URL', value: 'http://localhost:8082' }],
+        dependsOn: [],
+      },
+    ],
+  },
+  {
+    id: 'nocodb',
+    nom: 'NocoDB',
+    description: "Interface façon Airtable au-dessus d'une base PostgreSQL",
+    services: [
+      {
+        name: 'nocodb', image: 'nocodb/nocodb:latest', ports: [{ host: 8083, container: 8080 }],
+        volumes: ['./nocodb-data:/usr/app/data'],
+        env: [{ key: 'NC_DB', value: 'pg://db:5432?u=nocodb&p=change_moi&d=nocodb' }],
+        dependsOn: ['db'],
+      },
+      {
+        name: 'db', image: 'postgres:16', ports: [],
+        volumes: ['./nocodb-db:/var/lib/postgresql/data'],
+        env: [{ key: 'POSTGRES_USER', value: 'nocodb' }, { key: 'POSTGRES_PASSWORD', value: 'change_moi' }, { key: 'POSTGRES_DB', value: 'nocodb' }],
+        dependsOn: [],
+      },
+    ],
+  },
+  {
+    id: 'duplicati',
+    nom: 'Duplicati',
+    description: 'Sauvegardes planifiées et chiffrées, en local ou vers le cloud',
+    services: [
+      {
+        name: 'duplicati', image: 'duplicati/duplicati:latest', ports: [{ host: 8200, container: 8200 }],
+        volumes: ['./duplicati-config:/config', './duplicati-backups:/backups', './a-sauvegarder:/source:ro'],
+        env: [{ key: 'SETTINGS_ENCRYPTION_KEY', value: 'change_moi' }],
+        dependsOn: [],
+      },
+    ],
+  },
+  {
+    id: 'trilium',
+    nom: 'Trilium Notes',
+    description: 'Prise de notes hiérarchique et personnelle, auto-hébergée',
+    services: [
+      {
+        name: 'trilium', image: 'zadam/trilium:latest', ports: [{ host: 8084, container: 8080 }],
+        volumes: ['./trilium-data:/home/node/trilium-data'], env: [], dependsOn: [],
+      },
+    ],
+  },
+  {
+    id: 'calibre-web',
+    nom: 'Calibre-Web',
+    description: "Bibliothèque et lecteur d'ebooks en ligne, à partir d'une bibliothèque Calibre existante",
+    services: [
+      {
+        name: 'calibre-web', image: 'linuxserver/calibre-web:latest', ports: [{ host: 8085, container: 8083 }],
+        volumes: ['./calibre-config:/config', './calibre-library:/books'],
+        env: [{ key: 'PUID', value: '1000' }, { key: 'PGID', value: '1000' }, { key: 'TZ', value: 'Europe/Paris' }],
+        dependsOn: [],
+      },
+    ],
+  },
+  {
+    id: 'logs-loki',
+    nom: 'Journalisation (Loki)',
+    description: 'Loki + Promtail + Grafana — centralise et explore les logs de tous les conteneurs',
+    services: [
+      {
+        name: 'loki', image: 'grafana/loki:latest', ports: [{ host: 3100, container: 3100 }],
+        volumes: ['./loki-data:/loki'], env: [], dependsOn: [],
+      },
+      {
+        name: 'promtail', image: 'grafana/promtail:latest', ports: [],
+        volumes: ['/var/lib/docker/containers:/var/lib/docker/containers:ro', '/var/run/docker.sock:/var/run/docker.sock:ro'],
+        env: [], dependsOn: ['loki'],
+      },
+      {
+        name: 'grafana', image: 'grafana/grafana:latest', ports: [{ host: 3002, container: 3000 }],
+        volumes: ['./grafana-data:/var/lib/grafana'],
+        env: [{ key: 'GF_SECURITY_ADMIN_PASSWORD', value: 'change_moi' }],
+        dependsOn: ['loki'],
+      },
+    ],
+  },
+  {
+    id: 'tailscale',
+    nom: 'Tailscale (VPN mesh)',
+    description: 'Rejoint ce serveur à votre tailnet Tailscale, sans exposer de ports publics',
+    services: [
+      {
+        name: 'tailscale', image: 'tailscale/tailscale:latest', ports: [],
+        volumes: ['./tailscale-state:/var/lib/tailscale', '/dev/net/tun:/dev/net/tun'],
+        env: [{ key: 'TS_AUTHKEY', value: 'change_moi' }, { key: 'TS_STATE_DIR', value: '/var/lib/tailscale' }],
+        dependsOn: [],
+      },
+    ],
+  },
+  {
+    id: 'watchtower',
+    nom: 'Watchtower',
+    description: 'Met à jour automatiquement les images des conteneurs en cours d\'exécution dès qu\'une nouvelle version est disponible',
+    services: [
+      {
+        name: 'watchtower', image: 'containrrr/watchtower:latest', ports: [],
+        volumes: ['/var/run/docker.sock:/var/run/docker.sock'],
+        env: [{ key: 'WATCHTOWER_CLEANUP', value: 'true' }, { key: 'WATCHTOWER_POLL_INTERVAL', value: '86400' }],
+        dependsOn: [],
+      },
+    ],
+  },
+  {
+    id: 'traefik-authelia',
+    nom: 'Traefik + Authelia',
+    description: "Reverse proxy Traefik protégé par une mire d'authentification Authelia (2FA) devant vos services",
+    services: [
+      {
+        name: 'traefik', image: 'traefik:latest',
+        ports: [{ host: 80, container: 80 }, { host: 8080, container: 8080 }],
+        volumes: ['/var/run/docker.sock:/var/run/docker.sock:ro'],
+        env: [
+          { key: 'TRAEFIK_PROVIDERS_DOCKER', value: 'true' },
+          { key: 'TRAEFIK_PROVIDERS_DOCKER_EXPOSEDBYDEFAULT', value: 'false' },
+          { key: 'TRAEFIK_ENTRYPOINTS_WEB_ADDRESS', value: ':80' },
+        ],
+        dependsOn: [],
+      },
+      {
+        name: 'authelia', image: 'authelia/authelia:latest', ports: [],
+        volumes: ['./authelia-config:/config'], env: [],
+        dependsOn: ['traefik'],
+        traefik: { active: true, domaine: 'auth.localhost', port: '9091' },
+      },
+    ],
+  },
+  {
+    id: 'minio',
+    nom: 'MinIO',
+    description: 'Stockage objet compatible S3, auto-hébergé, avec console web',
+    services: [
+      {
+        name: 'minio', image: 'minio/minio:latest',
+        ports: [{ host: 9000, container: 9000 }, { host: 9001, container: 9001 }],
+        volumes: ['./minio-data:/data'],
+        env: [{ key: 'MINIO_ROOT_USER', value: 'admin' }, { key: 'MINIO_ROOT_PASSWORD', value: 'change_moi_12' }],
+        dependsOn: [],
+      },
+    ],
+  },
+  {
+    id: 'code-server',
+    nom: 'Code Server',
+    description: 'Visual Studio Code accessible depuis le navigateur, exécuté sur votre propre serveur',
+    services: [
+      {
+        name: 'code-server', image: 'codercom/code-server:latest', ports: [{ host: 8443, container: 8080 }],
+        volumes: ['./code-server-config:/home/coder/.config', './projets:/home/coder/project'],
+        env: [{ key: 'PASSWORD', value: 'change_moi' }],
+        dependsOn: [],
+      },
+    ],
+  },
+  {
+    id: 'freshrss',
+    nom: 'FreshRSS',
+    description: 'Agrégateur de flux RSS auto-hébergé, léger et multi-utilisateurs',
+    services: [
+      {
+        name: 'freshrss', image: 'freshrss/freshrss:latest', ports: [{ host: 8086, container: 80 }],
+        volumes: ['./freshrss-data:/var/www/FreshRSS/data', './freshrss-extensions:/var/www/FreshRSS/extensions'],
+        env: [{ key: 'TZ', value: 'Europe/Paris' }],
+        dependsOn: [],
+      },
+    ],
+  },
+  {
+    id: 'excalidraw',
+    nom: 'Excalidraw',
+    description: 'Tableau blanc collaboratif pour croquis et schémas, auto-hébergé',
+    services: [
+      {
+        name: 'excalidraw', image: 'excalidraw/excalidraw:latest', ports: [{ host: 8087, container: 80 }],
+        volumes: [], env: [], dependsOn: [],
+      },
+    ],
+  },
 ]
 
 // Construit des objets service complets (avec id) à partir d'une stack,
@@ -1361,6 +1622,7 @@ export function construireStack(stack, portsUtilisesInitial) {
       healthcheck: { enabled: false, test: healthcheckSuggere(s.image), interval: '30s', timeout: '5s', retries: 3 },
       memLimit: '',
       cpus: '',
+      traefik: s.traefik || { active: false, domaine: '', port: '' },
     }
   })
 }

@@ -1,21 +1,28 @@
 import { useState, useMemo } from 'react'
-import { STACKS } from '../core/stacks.js'
+import { STACKS, CATEGORIE_LABELS, categorieDe } from '../core/stacks.js'
+
+const CATEGORIES_ORDRE = ['web', 'dev', 'reseau', 'monitoring', 'perso', 'outils']
 
 // Boutons pour charger une stack complète (plusieurs services liés) en un clic
-// + recherche pour retrouver rapidement une stack parmi toutes celles disponibles
+// + recherche et filtre par catégorie pour retrouver rapidement une stack
+// parmi toutes celles disponibles.
 function StackPresets({ onCharger }) {
   const [recherche, setRecherche] = useState('')
+  const [categorie, setCategorie] = useState('toutes')
 
   const stacksFiltrees = useMemo(() => {
     const q = recherche.trim().toLowerCase()
-    if (!q) return STACKS
-    return STACKS.filter(
-      (s) =>
+    return STACKS.filter((s) => {
+      const correspondCategorie = categorie === 'toutes' || categorieDe(s) === categorie
+      if (!correspondCategorie) return false
+      if (!q) return true
+      return (
         s.nom.toLowerCase().includes(q) ||
         s.description.toLowerCase().includes(q) ||
         s.services.some((sv) => sv.image.toLowerCase().includes(q))
-    )
-  }, [recherche])
+      )
+    })
+  }, [recherche, categorie])
 
   return (
     <div className="stacks">
@@ -31,6 +38,29 @@ function StackPresets({ onCharger }) {
         value={recherche}
         onChange={(e) => setRecherche(e.target.value)}
       />
+
+      <div className="stacks-categories">
+        <button
+          type="button"
+          className={`chip-categorie ${categorie === 'toutes' ? 'chip-categorie-actif' : ''}`}
+          onClick={() => setCategorie('toutes')}
+        >
+          Toutes ({STACKS.length})
+        </button>
+        {CATEGORIES_ORDRE.map((c) => {
+          const nb = STACKS.filter((s) => categorieDe(s) === c).length
+          return (
+            <button
+              type="button"
+              key={c}
+              className={`chip-categorie ${categorie === c ? 'chip-categorie-actif' : ''}`}
+              onClick={() => setCategorie(c)}
+            >
+              {CATEGORIE_LABELS[c]} ({nb})
+            </button>
+          )
+        })}
+      </div>
 
       {stacksFiltrees.length === 0 ? (
         <p className="liste-vide">Aucune stack ne correspond à "{recherche}".</p>

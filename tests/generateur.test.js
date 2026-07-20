@@ -4,13 +4,19 @@
 import {
   buildDockerCompose,
   buildEnvFiles,
+  buildDockerRunScript,
   validerServices,
   estSecret,
   suggererDependancesManquantes,
   auditSecurite,
+  construireLabelsTraefik,
+  genererMotDePasse,
+  estValeurFaible,
+  buildKubernetesManifests,
 } from '../src/core/generateur.js'
 import { calculerCharge, construireLiens, grouperParReseau } from '../src/core/topologie.js'
 import { trouverPortLibre, portsHoteUtilises } from '../src/core/catalogue.js'
+import { STACKS, CATEGORIE_PAR_STACK, categorieDe } from '../src/core/stacks.js'
 
 let nbTests = 0
 let nbEchecs = 0
@@ -98,6 +104,169 @@ test('génère un fichier .env avec les variables de tous les services', () => {
   ]
   const fichiers = buildEnvFiles(services)
   assert(Object.keys(fichiers).length > 0, 'devrait produire au moins un fichier .env')
+})
+
+console.log('\n--- buildKubernetesManifests ---')
+
+test('génère un Deployment et un Service pour un service simple', () => {
+  const yaml = buildKubernetesManifests([serviceBase({ name: 'web', ports: [{ host: '8080', container: '80' }] })])
+  assertInclut(yaml, 'kind: Deployment')
+  assertInclut(yaml, 'kind: Service')
+  assertInclut(yaml, 'name: web')
+  assertInclut(yaml, 'image: nginx:latest')
+  assertInclut(yaml, 'containerPort: 80')
+})
+
+test("ne génère pas de Service si le service n'expose aucun port conteneur", () => {
+  const yaml = buildKubernetesManifests([serviceBase({ ports: [] })])
+  assert(!yaml.includes('kind: Service'), 'aucun Service attendu sans port conteneur')
+  assertInclut(yaml, 'kind: Deployment')
+})
+
+test('nettoie le nom de service en un nom de ressource Kubernetes valide (RFC 1123)', () => {
+  const yaml = buildKubernetesManifests([serviceBase({ name: 'Mon Appli_01' })])
+  assertInclut(yaml, 'name: mon-appli-01')
+})
+
+test('sépare les documents avec "---"', () => {
+  const yaml = buildKubernetesManifests([
+    serviceBase({ name: 'web', ports: [{ host: '8080', container: '80' }] }),
+    serviceBase({ name: 'db', ports: [] }),
+  ])
+  const nbDocuments = yaml.split('\n---\n').length
+  assert(nbDocuments >= 3, `attendu au moins 3 documents (commentaire + 2 Deployments), obtenu ${nbDocuments}`)
+})
+
+test('extrait les secrets dans une ressource Secret quand extraireSecrets est actif', () => {
+  const yaml = buildKubernetesManifests(
+    [serviceBase({ name: 'db', env: [{ key: 'DB_PASSWORD', value: 'motdepasse123' }] })],
+    { extraireSecrets: true }
+  )
+  assertInclut(yaml, 'kind: Secret')
+  assertInclut(yaml, 'secretKeyRef')
+  assert(!yaml.includes('motdepasse123'), 'le mot de passe en clair ne devrait pas apparaître (seulement encodé en base64)')
+})
+
+test("garde les secrets en clair en env si extraireSecrets n'est pas activé", () => {
+  const yaml = buildKubernetesManifests([
+    serviceBase({ name: 'db', env: [{ key: 'DB_PASSWORD', value: 'motdepasse123' }] }),
+  ])
+  assert(!yaml.includes('kind: Secret'), 'aucun Secret attendu sans extraireSecrets')
+  assertInclut(yaml, 'motdepasse123')
+})
+
+console.log('\n--- construireLabelsTraefik ---')
+
+test("ne génère aucun label si l'option Traefik est désactivée", () => {
+  const labels = construireLabelsTraefik(serviceBase({ traefik: { active: false, domaine: 'app.test' } }))
+  assert(labels.length === 0, 'aucun label attendu quand traefik.active est false')
+})
+
+test("ne génère aucun label si activé mais sans domaine", () => {
+  const labels = construireLabelsTraefik(serviceBase({ traefik: { active: true, domaine: '' } }))
+  assert(labels.length === 0, 'aucun label attendu sans domaine renseigné')
+})
+
+test('génère les labels attendus avec domaine et port explicites', () => {
+  const labels = construireLabelsTraefik(
+    serviceBase({ name: 'app', traefik: { active: true, domaine: 'app.example.com', port: '3000' } })
+  )
+  assert(labels.includes('traefik.enable=true'), 'devrait activer Traefik')
+  assert(
+    labels.some((l) => l === 'traefik.http.routers.app.rule=Host(`app.example.com`)'),
+    'devrait router sur le bon nom de domaine'
+  )
+  assert(
+    labels.some((l) => l === 'traefik.http.services.app.loadbalancer.server.port=3000'),
+    'devrait cibler le port explicite'
+  )
+})
+
+test('retombe sur le premier port conteneur si aucun port Traefik explicite', () => {
+  const labels = construireLabelsTraefik(
+    serviceBase({
+      name: 'app',
+      ports: [{ host: '8080', container: '4000' }],
+      traefik: { active: true, domaine: 'app.example.com', port: '' },
+    })
+  )
+  assert(
+    labels.some((l) => l === 'traefik.http.services.app.loadbalancer.server.port=4000'),
+    'devrait retomber sur le port conteneur déclaré'
+  )
+})
+
+test('nettoie le nom de service pour construire un identifiant de routeur valide', () => {
+  const labels = construireLabelsTraefik(
+    serviceBase({ name: 'Mon Appli_01', traefik: { active: true, domaine: 'app.example.com' } })
+  )
+  assert(
+    labels.some((l) => l.includes('traefik.http.routers.mon-appli-01.rule=')),
+    'devrait produire un identifiant de routeur en minuscules sans caractères spéciaux'
+  )
+})
+
+test('buildDockerCompose inclut les labels Traefik générés', () => {
+  const yaml = buildDockerCompose([
+    serviceBase({ name: 'app', traefik: { active: true, domaine: 'app.example.com', port: '3000' } }),
+  ])
+  assertInclut(yaml, 'labels:')
+  assertInclut(yaml, 'traefik.enable=true')
+})
+
+test('buildDockerRunScript ajoute les labels Traefik via -l', () => {
+  const script = buildDockerRunScript([
+    serviceBase({ name: 'app', traefik: { active: true, domaine: 'app.example.com', port: '3000' } }),
+  ])
+  assertInclut(script, '-l')
+  assertInclut(script, 'traefik.enable=true')
+})
+
+test('validerServices avertit si Traefik est activé sans domaine', () => {
+  const { avertissements } = validerServices([
+    serviceBase({ volumes: ['/data'], traefik: { active: true, domaine: '' } }),
+  ])
+  assert(
+    avertissements.some((a) => a.includes('Traefik') && a.includes('domaine')),
+    "devrait avertir de l'absence de domaine"
+  )
+})
+
+test('génère internal: true pour un réseau marqué comme interne', () => {
+  const yaml = buildDockerCompose(
+    [serviceBase({ name: 'db', networks: ['backend'] })],
+    { networks: [{ nom: 'backend', driver: 'bridge', interne: true }] }
+  )
+  assertInclut(yaml, '  backend:')
+  assertInclut(yaml, '    internal: true')
+})
+
+test("n'ajoute pas internal: true pour un réseau normal", () => {
+  const yaml = buildDockerCompose(
+    [serviceBase({ name: 'db', networks: ['backend'] })],
+    { networks: [{ nom: 'backend', driver: 'bridge', interne: false }] }
+  )
+  assert(!yaml.includes('internal: true'), "ne devrait pas contenir internal: true pour un réseau non interne")
+})
+
+console.log('\n--- genererMotDePasse / estValeurFaible ---')
+
+test('genererMotDePasse produit une chaîne de 32 caractères alphanumériques', () => {
+  const mdp = genererMotDePasse()
+  assert(mdp.length === 32, `longueur attendue 32, obtenu ${mdp.length}`)
+  assert(/^[A-Za-z0-9]+$/.test(mdp), 'devrait être purement alphanumérique')
+})
+
+test('genererMotDePasse produit des valeurs différentes à chaque appel', () => {
+  assert(genererMotDePasse() !== genererMotDePasse(), 'deux appels ne devraient pas donner la même valeur')
+})
+
+test('estValeurFaible reconnaît les valeurs vides et les mots de passe d\'exemple', () => {
+  assert(estValeurFaible(''), 'une valeur vide est faible')
+  assert(estValeurFaible('change_moi'), '"change_moi" est faible')
+  assert(estValeurFaible('change_moi_12'), '"change_moi_12" (variante avec suffixe) est faible')
+  assert(estValeurFaible('admin'), '"admin" est faible')
+  assert(!estValeurFaible('K7p#mZ9qL2vX8sN4wQ1rT6yU3hB0'), 'un mot de passe robuste ne doit pas être signalé comme faible')
 })
 
 console.log('\n--- validerServices ---')
@@ -265,6 +434,46 @@ test('portsHoteUtilises recense tous les ports occupés', () => {
   const services = [serviceBase({ ports: [{ host: '3000', container: '3000' }] })]
   const utilises = portsHoteUtilises(services)
   assert(utilises.has(3000))
+})
+
+console.log('\n--- stacks.js (intégrité du catalogue) ---')
+
+test('chaque stack a un id unique', () => {
+  const ids = STACKS.map((s) => s.id)
+  const doublons = ids.filter((id, i) => ids.indexOf(id) !== i)
+  assert(doublons.length === 0, `id(s) en double : ${[...new Set(doublons)].join(', ')}`)
+})
+
+test('chaque stack a au moins un service avec nom et image', () => {
+  for (const stack of STACKS) {
+    assert(stack.services.length > 0, `la stack "${stack.id}" n'a aucun service`)
+    for (const s of stack.services) {
+      assert(s.name && s.name.trim() !== '', `un service de "${stack.id}" n'a pas de nom`)
+      assert(s.image && s.image.trim() !== '', `le service "${s.name}" de "${stack.id}" n'a pas d'image`)
+    }
+  }
+})
+
+test('les dépendances (dependsOn) déclarées dans une stack pointent vers un service existant de la même stack', () => {
+  for (const stack of STACKS) {
+    const noms = new Set(stack.services.map((s) => s.name))
+    for (const s of stack.services) {
+      for (const dep of s.dependsOn || []) {
+        assert(noms.has(dep), `"${stack.id}" : "${s.name}" dépend de "${dep}", absent de la stack`)
+      }
+    }
+  }
+})
+
+test('chaque stack a une catégorie explicitement assignée (pas de repli silencieux)', () => {
+  const sansCategorie = STACKS.filter((s) => !(s.id in CATEGORIE_PAR_STACK))
+  assert(
+    sansCategorie.length === 0,
+    `stack(s) sans catégorie assignée dans CATEGORIE_PAR_STACK : ${sansCategorie.map((s) => s.id).join(', ')}`
+  )
+  for (const s of STACKS) {
+    assert(typeof categorieDe(s) === 'string' && categorieDe(s) !== '', `categorieDe("${s.id}") devrait renvoyer une chaîne non vide`)
+  }
 })
 
 console.log(`\n${nbTests - nbEchecs}/${nbTests} tests réussis.`)
