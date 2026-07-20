@@ -102,19 +102,6 @@ dockerforge/
 - Politique de redémarrage (`restart`), dépendances (`depends_on`),
   vérification de santé (`healthcheck`), limites de ressources (`mem_limit`,
   `cpus`), profils d'activation (`profiles`).
-- **Reverse proxy Traefik en un clic** : coche "Exposer via Traefik", indique
-  un nom de domaine (+ port interne optionnel), et les labels Docker
-  (`traefik.enable`, routeur, entrypoint HTTPS, certresolver Let's Encrypt)
-  sont générés automatiquement dans le YAML *et* dans le script `docker run`
-  équivalent. Un avertissement apparaît si l'option est activée sans domaine.
-
-**Palette de commandes**
-- **Ctrl/Cmd+K** ouvre une palette de recherche unifiée (façon éditeur de
-  code) : charger n'importe quelle stack, changer d'onglet, créer un
-  nouveau projet, basculer le thème, télécharger le compose ou tout effacer
-  — navigable entièrement au clavier (↑↓, Entrée, Échap). Un bouton dans
-  l'en-tête l'ouvre aussi à la souris pour ceux qui ne connaissent pas le
-  raccourci.
 
 **Réseaux**
 - Créer des réseaux Docker personnalisés et assigner chaque service à un ou
@@ -122,19 +109,13 @@ dockerforge/
   répartition des services par réseau.
 
 **Stacks & import**
-- **73 stacks prêtes à l'emploi**, en un clic, réparties par usage :
+- **50 stacks prêtes à l'emploi**, en un clic, réparties par usage :
   - *Web/CMS* : LAMP, LEMP, WordPress, Ghost, Strapi, Directus.
-  - *Données/dev* : Node+Mongo, Metabase, Gitea (2 variantes), GitLab,
-    SonarQube, pgAdmin, Redmine, Jupyter, PocketBase, Neo4j, Kafka+Zookeeper,
-    Jenkins, RabbitMQ, Baserow, NocoDB.
-  - *Réseau/reverse proxy* : **Traefik + démo whoami** (routage automatique
-    par domaine, voir plus bas), Tailscale (VPN mesh).
-  - *Monitoring/logs* : Monitoring léger, Observabilité complète, ELK,
-    **Journalisation (Loki + Promtail + Grafana)**, Uptime Kuma, Matomo,
-    Umami, changedetection.io.
+  - *Données/dev* : Node+Mongo, Metabase, Gitea, GitLab, SonarQube, pgAdmin,
+    Redmine, Jupyter, PocketBase, Neo4j, Kafka+Zookeeper, Jenkins, RabbitMQ.
+  - *Monitoring/logs* : Monitoring léger, Observabilité complète, ELK, Uptime Kuma, Matomo, Umami, changedetection.io.
   - *Auto-hébergement perso* : Nextcloud, Pi-hole, Home Assistant, Jellyfin,
-    Plex, Syncthing, Vaultwarden, Linkding, Firefly III, Mealie, Grocy,
-    Homepage, Duplicati, Trilium Notes, Calibre-Web.
+    Plex, Syncthing, Vaultwarden, Linkding, Firefly III, Mealie, Grocy, Homepage.
   - *Communication/outils* : n8n, Mattermost, Wiki.js, BookStack, Mailpit,
     Meilisearch, WireGuard Easy, Keycloak, Portainer, Redis+RedisInsight,
     Miniflux, Shlink.
@@ -194,27 +175,6 @@ Correctifs récents._
 
 ## Correctifs récents
 
-- **Labels Traefik automatiques** : nouvelle option "Exposer via Traefik"
-  dans les options avancées de chaque service (domaine + port interne
-  optionnel) — génère les labels `traefik.enable`, routeur (règle `Host`),
-  entrypoint HTTPS et certresolver Let's Encrypt, aussi bien dans le YAML
-  que dans le script `docker run` équivalent (`-l`). Un avertissement
-  apparaît si l'option est activée sans domaine renseigné.
-- **Palette de commandes (Ctrl/Cmd+K)** : recherche unifiée façon éditeur de
-  code pour charger une stack, changer d'onglet, créer un projet, basculer
-  le thème, télécharger le compose ou tout effacer — navigable au clavier.
-- **Vague 7 de stacks** (65 → 73) : Traefik + whoami (démo du nouveau champ
-  reverse proxy), Baserow, NocoDB, Duplicati, Trilium Notes, Calibre-Web,
-  Journalisation (Loki + Promtail + Grafana), Tailscale.
-- **Id de stack dupliqué** : corrigé — deux stacks "Gitea" partageaient le
-  même identifiant interne (`gitea`), ce qui pouvait perturber leur
-  affichage ; la variante avec port SSH exposé porte maintenant l'id
-  `gitea-ssh`. Un test garde-fou empêche qu'un futur doublon d'id, un
-  service sans nom/image, ou une dépendance orpheline dans une stack ne
-  passe inaperçu.
-- **Micro-interactions** : légères animations au survol des cartes de
-  stacks/modèles et des boutons, style `focus-visible` cohérent sur tous
-  les éléments interactifs pour la navigation au clavier.
 - **Vague 6 de stacks** : GitLab, Jupyter, PocketBase, Plex, Neo4j,
   Kafka+Zookeeper, Jenkins, RabbitMQ — 8 stacks de plus (42 → 50).
 - **Recherche pour les stacks** : un champ de recherche est apparu
