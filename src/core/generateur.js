@@ -393,6 +393,18 @@ export function buildDockerCompose(services, options = {}) {
       lines.push(`    cpus: "${service.cpus}"`)
     }
 
+    if ((service.logMaxSize && service.logMaxSize.trim() !== '') || (service.logMaxFile && service.logMaxFile.trim() !== '')) {
+      lines.push('    logging:')
+      lines.push('      driver: json-file')
+      lines.push('      options:')
+      if (service.logMaxSize && service.logMaxSize.trim() !== '') {
+        lines.push(`        max-size: ${yamlValue(service.logMaxSize)}`)
+      }
+      if (service.logMaxFile && service.logMaxFile.trim() !== '') {
+        lines.push(`        max-file: ${yamlValue(String(service.logMaxFile))}`)
+      }
+    }
+
     if (service.networks && service.networks.length > 0) {
       lines.push('    networks:')
       for (const net of service.networks) {
@@ -531,6 +543,11 @@ export function buildDockerRunScript(services, options = {}) {
     }
     if (service.memLimit && service.memLimit.trim() !== '') parts.push(`-m ${shValue(service.memLimit)}`)
     if (service.cpus && service.cpus.trim() !== '') parts.push(`--cpus ${shValue(service.cpus)}`)
+    if (service.logMaxSize && service.logMaxSize.trim() !== '') {
+      parts.push('--log-driver json-file')
+      parts.push(`--log-opt max-size=${shValue(service.logMaxSize)}`)
+    }
+    if (service.logMaxFile && service.logMaxFile.trim() !== '') parts.push(`--log-opt max-file=${shValue(String(service.logMaxFile))}`)
     parts.push(shValue(service.image || 'nginx:latest'))
 
     lignes.push(parts.join(' \\\n  '))

@@ -40,7 +40,8 @@ export const CATEGORIE_PAR_STACK = {
   'calibre-web': 'perso', freshrss: 'perso', excalidraw: 'perso',
   n8n: 'outils', mailpit: 'outils', mattermost: 'outils', wikijs: 'outils',
   bookstack: 'outils', miniflux: 'outils', shlink: 'outils', glpi: 'outils',
-  rocketchat: 'outils', discourse: 'outils',
+  rocketchat: 'outils', discourse: 'outils', vikunja: 'outils',
+  'adguard-home': 'reseau', 'actual-budget': 'perso',
 }
 
 export function categorieDe(stack) {
@@ -1594,6 +1595,47 @@ export const STACKS = [
       },
     ],
   },
+  {
+    id: 'adguard-home',
+    nom: 'AdGuard Home',
+    description: "Bloqueur de publicités et traqueurs pour tout le réseau, au niveau DNS (alternative à Pi-hole)",
+    services: [
+      {
+        name: 'adguard', image: 'adguard/adguardhome:latest',
+        ports: [
+          { host: 3000, container: 3000 },
+          { host: 53, container: 53 },
+        ],
+        volumes: ['./adguard-work:/opt/adguardhome/work', './adguard-conf:/opt/adguardhome/conf'],
+        env: [], dependsOn: [],
+      },
+    ],
+  },
+  {
+    id: 'vikunja',
+    nom: 'Vikunja',
+    description: 'Gestionnaire de tâches et de projets auto-hébergé, alternative libre à Todoist/Trello',
+    services: [
+      {
+        name: 'vikunja', image: 'vikunja/vikunja:latest', ports: [{ host: 3456, container: 3456 }],
+        volumes: ['./vikunja-data:/app/vikunja/files'],
+        env: [{ key: 'VIKUNJA_SERVICE_JWTSECRET', value: 'change_moi_12' }],
+        dependsOn: [],
+      },
+    ],
+  },
+  {
+    id: 'actual-budget',
+    nom: 'Actual Budget',
+    description: 'Application de budget personnel (budgétisation à enveloppes), rapide et auto-hébergée',
+    services: [
+      {
+        name: 'actual-budget', image: 'actualbudget/actual-server:latest', ports: [{ host: 5006, container: 5006 }],
+        volumes: ['./actual-data:/data'],
+        env: [], dependsOn: [],
+      },
+    ],
+  },
 ]
 
 // Construit des objets service complets (avec id) à partir d'une stack,
@@ -1622,6 +1664,8 @@ export function construireStack(stack, portsUtilisesInitial) {
       healthcheck: { enabled: false, test: healthcheckSuggere(s.image), interval: '30s', timeout: '5s', retries: 3 },
       memLimit: '',
       cpus: '',
+      logMaxSize: '',
+      logMaxFile: '',
       traefik: s.traefik || { active: false, domaine: '', port: '' },
     }
   })

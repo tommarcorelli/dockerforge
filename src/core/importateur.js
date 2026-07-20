@@ -147,6 +147,8 @@ export function importerDockerCompose(texteYaml) {
       healthcheck: normaliserHealthcheck(def.healthcheck),
       memLimit: def.mem_limit || '',
       cpus: def.cpus ? String(def.cpus) : '',
+      logMaxSize: (def.logging && def.logging.options && def.logging.options['max-size']) || '',
+      logMaxFile: (def.logging && def.logging.options && def.logging.options['max-file']) ? String(def.logging.options['max-file']) : '',
     })
   }
 

@@ -19,6 +19,7 @@ import {
   siPrestashop, siOdoo,
   siGitea, siHomepage, siGrocy,
   siOllama,
+  siAdguard, siActualbudget,
 } from 'simple-icons'
 
 export const CATALOGUE = [
@@ -174,6 +175,7 @@ export const CATALOGUE = [
       ], icone: null },
       { nom: 'Linkding (marque-pages)', image: 'sissbruecker/linkding:latest', portDefaut: 9090, suggestionNom: 'linkding', envDefaut: [], icone: null },
       { nom: 'Changedetection.io', image: 'ghcr.io/dgtlmoon/changedetection.io:latest', portDefaut: 5000, suggestionNom: 'changedetection', envDefaut: [], icone: null },
+      { nom: 'Actual Budget', image: 'actualbudget/actual-server:latest', portDefaut: 5006, suggestionNom: 'actual-budget', envDefaut: [], icone: siActualbudget },
     ],
   },
   {
@@ -216,6 +218,7 @@ export const CATALOGUE = [
       { nom: 'WireGuard Easy', image: 'ghcr.io/wg-easy/wg-easy:latest', portDefaut: 51821, suggestionNom: 'wg-easy', envDefaut: [
         { key: 'PASSWORD', value: 'change_moi' },
       ], icone: siWireguard },
+      { nom: 'AdGuard Home', image: 'adguard/adguardhome:latest', portDefaut: 3000, suggestionNom: 'adguard', envDefaut: [], icone: siAdguard },
     ],
   },
   {
@@ -265,6 +268,9 @@ export const CATALOGUE = [
         { key: 'SECRET_KEY', value: 'change_moi' },
         { key: 'DATABASE_URL', value: 'postgres://outline:change_moi@db:5432/outline' },
       ], icone: siOutline },
+      { nom: 'Vikunja (tâches)', image: 'vikunja/vikunja:latest', portDefaut: 3456, suggestionNom: 'vikunja', envDefaut: [
+        { key: 'VIKUNJA_SERVICE_JWTSECRET', value: 'change_moi' },
+      ], icone: null },
     ],
   },
   {

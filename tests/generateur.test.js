@@ -249,6 +249,26 @@ test("n'ajoute pas internal: true pour un réseau normal", () => {
   assert(!yaml.includes('internal: true'), "ne devrait pas contenir internal: true pour un réseau non interne")
 })
 
+test('génère un bloc logging (json-file) quand une limite de logs est renseignée', () => {
+  const yaml = buildDockerCompose([serviceBase({ logMaxSize: '10m', logMaxFile: '3' })])
+  assertInclut(yaml, '    logging:')
+  assertInclut(yaml, '      driver: json-file')
+  assertInclut(yaml, 'max-size: 10m')
+  assertInclut(yaml, 'max-file: "3"')
+})
+
+test("n'ajoute aucun bloc logging si aucune limite n'est renseignée", () => {
+  const yaml = buildDockerCompose([serviceBase()])
+  assert(!yaml.includes('logging:'), 'ne devrait pas contenir de bloc logging par défaut')
+})
+
+test('buildDockerRunScript ajoute --log-opt quand une limite de logs est renseignée', () => {
+  const script = buildDockerRunScript([serviceBase({ logMaxSize: '10m', logMaxFile: '3' })])
+  assertInclut(script, '--log-driver json-file')
+  assertInclut(script, '--log-opt max-size=10m')
+  assertInclut(script, '--log-opt max-file=3')
+})
+
 console.log('\n--- genererMotDePasse / estValeurFaible ---')
 
 test('genererMotDePasse produit une chaîne de 32 caractères alphanumériques', () => {

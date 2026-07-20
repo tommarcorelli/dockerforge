@@ -102,6 +102,11 @@ dockerforge/
 - Politique de redémarrage (`restart`), dépendances (`depends_on`),
   vérification de santé (`healthcheck`), limites de ressources (`mem_limit`,
   `cpus`), profils d'activation (`profiles`).
+- **Rotation des logs (nouveau)** : taille max par fichier et nombre de
+  fichiers conservés (driver `json-file`), pour éviter qu'un conteneur qui
+  tourne longtemps ne remplisse le disque avec ses logs. Génère le bloc
+  `logging:` dans le YAML et les `--log-opt` équivalents dans le script
+  `docker run` ; relu correctement à l'import d'un compose existant.
 - **Reverse proxy Traefik en un clic** : coche "Exposer via Traefik", indique
   un nom de domaine (+ port interne optionnel), et les labels Docker
   (`traefik.enable`, routeur, entrypoint HTTPS, certresolver Let's Encrypt)
@@ -153,7 +158,7 @@ dockerforge/
   répartition des services par réseau.
 
 **Stacks & import**
-- **79 stacks prêtes à l'emploi**, filtrables par catégorie (Web & CMS,
+- **82 stacks prêtes à l'emploi**, filtrables par catégorie (Web & CMS,
   Données & dev, Réseau & sécurité, Monitoring & maintenance,
   Auto-hébergement perso, Communication & outils) en plus de la recherche
   texte libre :
@@ -162,16 +167,18 @@ dockerforge/
     SonarQube, pgAdmin, Redmine, Jupyter, PocketBase, Neo4j, Kafka+Zookeeper,
     Jenkins, RabbitMQ, Baserow, NocoDB, MinIO, Code Server.
   - *Réseau/reverse proxy* : Traefik + démo whoami, **Traefik + Authelia**
-    (2FA devant vos services), Tailscale (VPN mesh).
+    (2FA devant vos services), Tailscale (VPN mesh), **AdGuard Home**
+    (blocage pub/traqueurs au niveau DNS, alternative à Pi-hole).
   - *Monitoring/logs* : Monitoring léger, Observabilité complète, ELK,
     Journalisation (Loki + Promtail + Grafana), Uptime Kuma, Matomo,
     Umami, changedetection.io, **Watchtower** (mise à jour auto des images).
   - *Auto-hébergement perso* : Nextcloud, Pi-hole, Home Assistant, Jellyfin,
     Plex, Syncthing, Vaultwarden, Linkding, Firefly III, Mealie, Grocy,
-    Homepage, Duplicati, Trilium Notes, Calibre-Web, FreshRSS, Excalidraw.
+    Homepage, Duplicati, Trilium Notes, Calibre-Web, FreshRSS, Excalidraw,
+    **Actual Budget** (budget personnel à enveloppes).
   - *Communication/outils* : n8n, Mattermost, Wiki.js, BookStack, Mailpit,
     Meilisearch, WireGuard Easy, Keycloak, Portainer, Redis+RedisInsight,
-    Miniflux, Shlink.
+    Miniflux, Shlink, **Vikunja** (gestion de tâches/projets).
 - Import d'un `docker-compose.yml` existant pour l'éditer visuellement,
   réseaux et profils de chaque service compris.
 
@@ -228,6 +235,16 @@ Correctifs récents._
 
 ## Correctifs récents
 
+- **Rotation des logs par service** : nouvelle option dans « Options
+  avancées » (taille max par fichier + nombre de fichiers conservés,
+  driver `json-file`) — génère `logging:` dans le `docker-compose.yml` et
+  `--log-driver`/`--log-opt` dans le script `docker run` équivalent.
+  Repris à l'import d'un compose existant, comme les autres réglages.
+- **Vague 9 de stacks** (79 → 82) : AdGuard Home (DNS anti-pub, alternative
+  à Pi-hole), Vikunja (gestion de tâches), Actual Budget (budget
+  personnel). Les 3 images correspondantes rejoignent aussi le catalogue
+  (catégories Sécurité & annuaire, Productivité & documentation,
+  Auto-hébergement).
 - **Export SVG du schéma** : ajouté (et corrigé en cours de route — la
   première version avait la fonction `exporterSvg()` et la `ref` définies
   mais jamais reliées au bouton/au `<svg>`, donc inutilisables ; c'est

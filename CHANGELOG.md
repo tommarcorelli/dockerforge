@@ -31,6 +31,17 @@ Résumé de tout ce qui a été ajouté/corrigé, dans l'ordre.
 
 ## Correctifs récents
 
+- **Rotation des logs par service** : ajouté — nouvelle option « Rotation
+  des logs » dans les options avancées (`logMaxSize`/`logMaxFile`), génère
+  un bloc `logging: { driver: json-file, options: { max-size, max-file } }`
+  dans le `docker-compose.yml`, les `--log-driver`/`--log-opt` équivalents
+  dans le script `docker run`, et relu à l'import d'un compose existant
+  (`def.logging.options`). Par défaut vide (aucun changement de
+  comportement pour les projets existants).
+- **Vague 9 de stacks** (79 → 82) : AdGuard Home, Vikunja, Actual Budget —
+  ajoutées à la fois comme stacks 1-clic et comme images du catalogue
+  (`adguard-home` → catégorie réseau, `vikunja` → outils, `actual-budget`
+  → perso dans `CATEGORIE_PAR_STACK`).
 - **Export SVG du schéma** : ajouté, avec un bug de câblage corrigé au
   passage (la `ref` et la fonction `exporterSvg()` avaient été écrites
   mais jamais reliées au `<svg>`/au bouton dans un tour précédent — code

@@ -25,6 +25,8 @@ const serviceVide = () => ({
   healthcheck: { enabled: false, test: '', interval: '30s', timeout: '5s', retries: 3 },
   memLimit: '',
   cpus: '',
+  logMaxSize: '',
+  logMaxFile: '',
   traefik: { active: false, domaine: '', port: '' },
 })
 
@@ -504,6 +506,29 @@ function ServiceForm({ onAdd, servicesExistants, servicesActuels, networksDispon
                 placeholder="CPU max, ex: 0.5"
                 value={service.cpus}
                 onChange={(e) => majChamp('cpus', e.target.value)}
+              />
+            </div>
+          </fieldset>
+
+          <fieldset>
+            <legend>
+              <span className="label-avec-aide">
+                Rotation des logs
+                <Aide texte="Sans limite, les logs d'un conteneur peuvent grossir indéfiniment et remplir le disque avec le temps (driver json-file par défaut). Optionnel, recommandé pour un service qui tourne longtemps en production." />
+              </span>
+            </legend>
+            <div className="ligne-champ">
+              <input
+                type="text"
+                placeholder="Taille max par fichier, ex: 10m"
+                value={service.logMaxSize}
+                onChange={(e) => majChamp('logMaxSize', e.target.value)}
+              />
+              <input
+                type="text"
+                placeholder="Nb de fichiers conservés, ex: 3"
+                value={service.logMaxFile}
+                onChange={(e) => majChamp('logMaxFile', e.target.value)}
               />
             </div>
           </fieldset>
