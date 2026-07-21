@@ -1,7 +1,13 @@
 import { useState, useMemo } from 'react'
 import { STACKS, CATEGORIE_LABELS, categorieDe } from '../core/stacks.js'
 
-const CATEGORIES_ORDRE = ['web', 'dev', 'reseau', 'monitoring', 'perso', 'outils']
+// Dérivé de CATEGORIE_LABELS (source unique de vérité, définie dans
+// stacks.js) plutôt que recopié à la main ici : sans ça, ajouter une
+// nouvelle catégorie dans stacks.js sans penser à mettre à jour ce fichier
+// ferait disparaître silencieusement son chip de filtre (les stacks
+// resteraient trouvables via "Toutes" et la recherche, mais invisibles du
+// filtre par catégorie).
+const CATEGORIES_ORDRE = Object.keys(CATEGORIE_LABELS)
 
 // Boutons pour charger une stack complète (plusieurs services liés) en un clic
 // + recherche et filtre par catégorie pour retrouver rapidement une stack

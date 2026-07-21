@@ -3,6 +3,8 @@
 // propres à un projet) : pratique pour rejouer rapidement une config qui
 // revient souvent (ex: un pattern de TP) sans repasser par le catalogue.
 
+import { trouverPortLibre } from './catalogue.js'
+
 const CLE_MODELES = 'dockerforge_modeles'
 
 export function chargerModeles() {
@@ -15,8 +17,18 @@ export function chargerModeles() {
   }
 }
 
+// N'utilise jamais un throw ici : un localStorage plein (quota dépassé) ou
+// indisponible (navigation privée sur certains navigateurs) ne doit jamais
+// faire planter toute l'application — au pire, le modèle reste en mémoire
+// pour la session en cours mais ne survit pas à un rechargement de page.
 function sauvegarderModeles(liste) {
-  localStorage.setItem(CLE_MODELES, JSON.stringify(liste))
+  try {
+    localStorage.setItem(CLE_MODELES, JSON.stringify(liste))
+    return true
+  } catch (err) {
+    console.error('DockerForge — impossible de sauvegarder les modèles (stockage plein ou indisponible) :', err)
+    return false
+  }
 }
 
 // Enregistre un service (tel qu'affiché dans la liste) comme modèle
@@ -48,9 +60,8 @@ export function instancierModele(modele, portsUtilisesInitial) {
   const s = modele.service
   const ports = (s.ports || []).map((p) => {
     if (!p.host) return { host: '', container: String(p.container || '') }
-    let port = Number(p.host)
-    while (utilises.has(port)) port += 1
-    utilises.add(port)
+    const port = trouverPortLibre(p.host, utilises)
+    if (Number.isFinite(Number(port))) utilises.add(Number(port))
     return { host: String(port), container: String(p.container) }
   })
   return {

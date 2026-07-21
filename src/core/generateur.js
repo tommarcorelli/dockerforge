@@ -643,8 +643,12 @@ export function validerServices(services, options = {}) {
       } else if (p.host) {
         portsHostVus.add(p.host)
       }
-      if (p.host && (hostNum < 1 || hostNum > 65535)) {
-        erreurs.push(`Le port hôte ${p.host} du service "${label}" est invalide (1-65535).`)
+      // Number("") vaut 0 (pas NaN) et Number("abc") vaut NaN : dans les deux
+      // cas, `hostNum < 1 || hostNum > 65535` ne suffit pas (une comparaison
+      // avec NaN est toujours fausse, donc "abc" passait inaperçu et finissait
+      // tel quel dans le docker-compose.yml généré, invalide au démarrage).
+      if (p.host && (!Number.isInteger(hostNum) || hostNum < 1 || hostNum > 65535)) {
+        erreurs.push(`Le port hôte "${p.host}" du service "${label}" est invalide (doit être un nombre entre 1 et 65535).`)
       }
     }
 

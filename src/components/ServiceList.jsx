@@ -1,5 +1,6 @@
 import { useState, useRef } from 'react'
 import { deviner_teinte, trouverIcone } from '../core/catalogue.js'
+import { copierTexte } from '../core/clipboard.js'
 import Icon from './Icon.jsx'
 
 // Liste des services ajoutés, sous forme de cartes
@@ -38,9 +39,11 @@ function ServiceList({ services, onRemove, onDuplicate, onReorder, onEdit, idEnE
 
   function copierEnJSON(s) {
     const { id, ...donnees } = s
-    navigator.clipboard.writeText(JSON.stringify(donnees, null, 2))
-    setCopieId(s.id)
-    setTimeout(() => setCopieId((c) => (c === s.id ? null : c)), 1500)
+    copierTexte(JSON.stringify(donnees, null, 2)).then((succes) => {
+      if (!succes) return
+      setCopieId(s.id)
+      setTimeout(() => setCopieId((c) => (c === s.id ? null : c)), 1500)
+    })
   }
 
   if (services.length === 0) {

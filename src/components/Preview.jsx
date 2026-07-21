@@ -1,6 +1,7 @@
 import { useState, Fragment } from 'react'
 import JSZip from 'jszip'
 import { tokeniserLigneYaml } from '../core/surlignageYaml.js'
+import { copierTexte } from '../core/clipboard.js'
 import Aide from './Aide.jsx'
 
 // Aperçu du docker-compose.yml généré, avec statut de validation
@@ -26,9 +27,12 @@ function Preview({
   }
 
   function copier() {
-    navigator.clipboard.writeText(contenuAffiche)
-    setCopie(true)
-    setTimeout(() => setCopie(false), 1500)
+    copierTexte(contenuAffiche).then((succes) => {
+      if (succes) {
+        setCopie(true)
+        setTimeout(() => setCopie(false), 1500)
+      }
+    })
   }
 
   function telechargerFichier(nom, contenu) {

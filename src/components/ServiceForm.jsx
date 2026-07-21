@@ -113,6 +113,12 @@ function ServiceForm({ onAdd, servicesExistants, servicesActuels, networksDispon
   function corrigerPortSiConflit(index) {
     const port = service.ports[index]
     if (!port.host) return
+    // Un port non numérique (saisie corrompue, copier-coller...) n'a rien à
+    // "corriger" ici : la validation du formulaire s'en charge déjà plus
+    // bas. Sans ce garde-fou, Number("abc") vaut NaN, et NaN !== NaN étant
+    // toujours vrai en JS, la ligne ci-dessous écrirait littéralement la
+    // chaîne "NaN" dans le champ au lieu de laisser la saisie telle quelle.
+    if (!Number.isFinite(Number(port.host))) return
     const utilises = portsHoteUtilises(servicesActuels || [])
     const portLibre = trouverPortLibre(port.host, utilises)
     if (portLibre !== Number(port.host)) {

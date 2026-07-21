@@ -81,6 +81,51 @@ function normaliserDependsOn(dependsOn) {
   return []
 }
 
+// Un service peut déclarer ses labels sous forme de liste ("clé=valeur") ou
+// d'objet ({ clé: valeur }) — dans les deux cas on reconstruit une Map pour
+// pouvoir chercher une clé précise facilement.
+function normaliserLabels(labels) {
+  const map = new Map()
+  if (!labels) return map
+  if (Array.isArray(labels)) {
+    for (const entree of labels) {
+      const texte = String(entree)
+      const idx = texte.indexOf('=')
+      if (idx === -1) map.set(texte, '')
+      else map.set(texte.slice(0, idx), texte.slice(idx + 1))
+    }
+  } else if (typeof labels === 'object') {
+    for (const [key, value] of Object.entries(labels)) {
+      map.set(key, String(value ?? ''))
+    }
+  }
+  return map
+}
+
+// Reconstruit le réglage "Exposer via Traefik" à partir des labels Docker,
+// pour que réimporter un compose généré par DockerForge (ou tout compose
+// Traefik v2 standard) restaure fidèlement le domaine et le port — sans ça,
+// le réglage disparaissait silencieusement à chaque aller-retour import/export.
+function normaliserTraefik(labels) {
+  const vide = { active: false, domaine: '', port: '' }
+  const map = normaliserLabels(labels)
+  if (map.get('traefik.enable') !== 'true') return vide
+
+  let domaine = ''
+  let port = ''
+  for (const [cle, valeur] of map) {
+    const matchDomaine = /^traefik\.http\.routers\.[^.]+\.rule$/.exec(cle)
+    if (matchDomaine) {
+      const hote = /Host\(`([^`]+)`\)/.exec(valeur)
+      if (hote) domaine = hote[1]
+    }
+    const matchPort = /^traefik\.http\.services\.[^.]+\.loadbalancer\.server\.port$/.exec(cle)
+    if (matchPort) port = valeur
+  }
+
+  return { active: true, domaine, port }
+}
+
 function normaliserHealthcheck(hc) {
   const vide = { enabled: false, test: '', interval: '30s', timeout: '5s', retries: 3 }
   if (!hc || !hc.test) return vide
@@ -149,6 +194,7 @@ export function importerDockerCompose(texteYaml) {
       cpus: def.cpus ? String(def.cpus) : '',
       logMaxSize: (def.logging && def.logging.options && def.logging.options['max-size']) || '',
       logMaxFile: (def.logging && def.logging.options && def.logging.options['max-file']) ? String(def.logging.options['max-file']) : '',
+      traefik: normaliserTraefik(def.labels),
     })
   }
 

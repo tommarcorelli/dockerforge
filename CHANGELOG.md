@@ -189,3 +189,88 @@ Résumé de tout ce qui a été ajouté/corrigé, dans l'ordre.
 ## Déploiement
 - Workflow GitHub Actions (`.github/workflows/deploy.yml`) : republie
   automatiquement sur GitHub Pages à chaque `push` sur `main`.
+
+## Qualité du code — robustesse & couverture de tests
+- **Import fidèle du réglage Traefik** : l'import d'un `docker-compose.yml`
+  relit désormais les labels `traefik.*` (domaine + port) et restaure le
+  réglage dans le formulaire — auparavant, réimporter un compose généré par
+  DockerForge faisait disparaître silencieusement ce réglage.
+- **Sauvegarde locale résiliente** : `sauvegarderProjets`, `sauvegarderModeles`
+  et l'écriture du thème sont protégées par un `try/catch` — un `localStorage`
+  plein ou indisponible (quota dépassé, navigation privée) ne fait plus
+  planter toute l'application via l'ErrorBoundary (qui proposait, dans ce cas,
+  de tout effacer alors que rien n'était corrompu) ; l'erreur est journalisée
+  et l'app continue de fonctionner en mémoire pour la session en cours.
+- **Port hôte non numérique non détecté (bug NaN)** : corrigé — la validation
+  comparait `Number(port.host) < 1 || > 65535`, or une comparaison avec `NaN`
+  est toujours fausse ; un port saisi/importé comme `"abc"` passait donc la
+  validation et finissait tel quel dans le `docker-compose.yml` généré
+  (`"abc:80"`, invalide au démarrage). La validation exige maintenant
+  explicitement un entier dans la plage 1–65535.
+- **Confusion entre images au préfixe commun** (ex: `redis` vs
+  `redis/redisinsight`, ou `mysql` vs un hypothétique `mysqld-exporter`) :
+  corrigée — la détection d'icône/teinte/healthcheck suggéré utilisait un
+  simple `startsWith`, qui faisait hériter à `redis/redisinsight` (dans la
+  stack "Redis + RedisInsight") le healthcheck `redis-cli ping` de Redis,
+  sans aucun sens sur cette image. La comparaison exige désormais une
+  égalité stricte ou un préfixe suivi de `:` (début du tag) — jamais un `/`,
+  qui indique un espace de noms Docker Hub différent, pas une variante.
+- **+36 tests** (53 → 89, toujours sans framework externe) couvrant :
+  - `importateur.js` (jusqu'ici non testé) : YAML invalide, service sans
+    image, formats de ports/env/depends_on/healthcheck, réseaux internes,
+    et le nouveau round-trip Traefik.
+  - `surlignageYaml.js` (jusqu'ici non testé) : coloration clé/valeur,
+    commentaires, tirets, nombres/booléens.
+  - `modeles.js` et `projets.js` (jusqu'ici non testés) : cycle complet
+    ajout/chargement/suppression/instanciation de modèle, migration de
+    l'ancien format de stockage, export/import de projet, et robustesse face
+    à un stockage corrompu.
+  - Port hôte invalide (NaN), unités de mémoire de `calculerCharge`, faux
+    positifs de correspondance d'image, et un test d'intégrité qui construit
+    chacune des 82 stacks du catalogue puis vérifie qu'elle passe la
+    validation sans aucune erreur (garde-fou contre une future stack cassée).
+- **Corruption "NaN" d'un port non numérique, bug élargi et corrigé à la
+  source** : le même piège (`Number("abc")` vaut `NaN`, et `NaN !== NaN` est
+  toujours vrai en JS) touchait en fait 3 endroits qui dupliquaient chacun
+  leur propre logique de "port libre" : import d'un `docker-compose.yml`,
+  duplication d'un service, instanciation d'un modèle, plus la correction de
+  conflit au blur du champ port dans le formulaire. Cas concret le plus
+  parlant : importer un compose utilisant une **plage de ports**
+  (`"3000-3005:3000-3005"`, syntaxe Compose valide mais non gérée par
+  DockerForge) remplaçait silencieusement la plage par la chaîne littérale
+  `"NaN"`. `trouverPortLibre` (catalogue.js) renvoie désormais la valeur
+  d'origine inchangée quand elle n'est pas un port numérique valide ; les 3
+  endroits concernés (`App.jsx`, `modeles.js`, `stacks.js`) partagent
+  maintenant cette même fonction au lieu de réimplémenter chacun leur
+  propre boucle (moins de code dupliqué, un seul endroit à corriger/tester).
+- **Copier dans le presse-papier plus robuste, et factorisé** :
+  `navigator.clipboard` peut être absent (contexte non-HTTPS) ou son appel
+  rejeté (permission refusée, document non focus...). Ce cas n'était pas
+  géré à deux endroits distincts (aperçu du compose dans `Preview.jsx`,
+  copie JSON d'un service dans `ServiceList.jsx`) — plutôt que dupliquer le
+  correctif, la logique de copie-avec-repli (`document.execCommand('copy')`
+  si l'API moderne échoue) est désormais centralisée dans un nouvel
+  utilitaire `src/core/clipboard.js` (`copierTexte`), réutilisé par les deux
+  composants et testé indépendamment (4 tests dédiés).
+- **+6 tests** pour la corruption "NaN" élargie et `clipboard.js` (95 au total).
+- **Filtre par catégorie des stacks dérivé, plus dupliqué à la main** :
+  `StackPresets.jsx` recopiait manuellement la liste des catégories
+  (`['web', 'dev', 'reseau', ...]`), déjà définie dans `CATEGORIE_LABELS`
+  (stacks.js) — un risque de désynchronisation si une nouvelle catégorie est
+  ajoutée un jour côté données sans mettre à jour le composant (le chip de
+  filtre correspondant n'apparaîtrait alors jamais). L'ordre est maintenant
+  dérivé directement de `Object.keys(CATEGORIE_LABELS)`, une seule source de
+  vérité. Un test d'intégrité vérifie en plus que chaque catégorie assignée
+  à une stack correspond bien à une entrée connue de `CATEGORIE_LABELS`.
+- **+1 test** pour cette cohérence catégories/libellés (96 au total).
+- **Échec silencieux à l'import d'un fichier** : les deux imports par
+  fichier (`docker-compose.yml` et projet `.json`) construisaient un
+  `FileReader` sans jamais définir `onerror` — si la lecture échouait
+  (fichier déplacé/supprimé entre la sélection et la lecture, accès
+  refusé...), `onload` ne se déclenchait tout simplement jamais : l'import
+  échouait en silence, sans le moindre message pour la personne qui vient de
+  cliquer sur "Importer". Un gestionnaire `onerror` a été ajouté aux deux,
+  réutilisant la même zone d'erreurs déjà affichée pour les autres échecs
+  d'import.
+
+

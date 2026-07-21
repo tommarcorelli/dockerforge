@@ -1,7 +1,7 @@
 // stacks.js — combos de services prêts à charger en un clic
 // Chaque stack décrit plusieurs services liés (dépendances, réseau logique)
 
-import { healthcheckSuggere } from './catalogue.js'
+import { healthcheckSuggere, trouverPortLibre } from './catalogue.js'
 
 // Étiquettes affichées pour chaque catégorie de stack (filtre dans
 // StackPresets). Une catégorie manquante pour un id retombe sur "outils".
@@ -1645,9 +1645,8 @@ export function construireStack(stack, portsUtilisesInitial) {
   return stack.services.map((s) => {
     const ports = (s.ports || []).map((p) => {
       if (!p.host) return { host: '', container: String(p.container || '') }
-      let port = Number(p.host)
-      while (utilises.has(port)) port += 1
-      utilises.add(port)
+      const port = trouverPortLibre(p.host, utilises)
+      if (Number.isFinite(Number(port))) utilises.add(Number(port))
       return { host: String(port), container: String(p.container) }
     })
     return {

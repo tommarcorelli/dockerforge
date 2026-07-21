@@ -325,13 +325,25 @@ export const CATALOGUE = [
   },
 ]
 
+// Compare une image utilisée par un service à la base d'une image du
+// catalogue (déjà débarrassée de son tag). Un simple `startsWith` ne suffit
+// pas : "redis/redisinsight" ou "mysqld-exporter" commencent respectivement
+// par "redis" et "mysql" sans être ces images-là. On exige donc une égalité
+// stricte, ou un préfixe suivi de ":" (début du tag) — un "/" qui suit N'EST
+// PAS une frontière sûre : "redis/redisinsight" a "redis" comme espace de
+// noms (organisation Docker Hub) mais désigne une image totalement
+// différente, pas une variante de "redis".
+function estMemeImage(img, base) {
+  return img === base || img.startsWith(base + ':')
+}
+
 // Retrouve la commande de healthcheck suggérée pour une image, si connue du
 // catalogue (bases de données/outils dont le client est inclus dans l'image
 // officielle — mysqladmin, pg_isready, redis-cli...). Renvoie '' si inconnue.
 export function healthcheckSuggere(image) {
   const img = (image || '').toLowerCase()
   for (const groupe of CATALOGUE) {
-    const trouve = groupe.images.find((i) => img.startsWith(i.image.split(':')[0]))
+    const trouve = groupe.images.find((i) => estMemeImage(img, i.image.split(':')[0]))
     if (trouve && trouve.healthcheck) return trouve.healthcheck
   }
   return ''
@@ -341,7 +353,7 @@ export function healthcheckSuggere(image) {
 export function trouverIcone(image) {
   const img = (image || '').toLowerCase()
   for (const groupe of CATALOGUE) {
-    const trouve = groupe.images.find((i) => img.startsWith(i.image.split(':')[0]))
+    const trouve = groupe.images.find((i) => estMemeImage(img, i.image.split(':')[0]))
     if (trouve) return trouve.icone
   }
   return null
@@ -351,7 +363,7 @@ export function trouverIcone(image) {
 export function deviner_teinte(image) {
   const img = (image || '').toLowerCase()
   for (const groupe of CATALOGUE) {
-    if (groupe.images.some((i) => img.startsWith(i.image.split(':')[0]))) {
+    if (groupe.images.some((i) => estMemeImage(img, i.image.split(':')[0]))) {
       return groupe.teinte
     }
   }
@@ -371,8 +383,15 @@ export function portsHoteUtilises(services) {
 
 // Trouve le premier port disponible à partir d'un port souhaité,
 // en évitant les ports déjà utilisés par les autres services du quai.
+// Si la valeur fournie n'est pas un port valide (ex: une plage de ports
+// "3000-3005", syntaxe Compose légitime mais non gérée par DockerForge, ou
+// une saisie corrompue), on la renvoie inchangée plutôt que de la corrompre
+// en la chaîne "NaN" — Number(portSouhaite) serait NaN, et NaN étant
+// toujours différent de lui-même en JS, la valeur d'origine se retrouvait
+// silencieusement écrasée. La validation du formulaire signale déjà ce cas.
 export function trouverPortLibre(portSouhaite, portsUtilises) {
   let port = Number(portSouhaite)
+  if (!Number.isFinite(port)) return portSouhaite
   while (portsUtilises.has(port)) {
     port += 1
   }

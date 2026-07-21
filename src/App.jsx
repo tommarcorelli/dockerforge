@@ -52,11 +52,21 @@ function App() {
   useEffect(() => () => {
     if (undoTimeoutRef.current) clearTimeout(undoTimeoutRef.current)
   }, [])
-  const [theme, setTheme] = useState(() => localStorage.getItem('dockerforge_theme') || 'clair')
+  const [theme, setTheme] = useState(() => {
+    try {
+      return localStorage.getItem('dockerforge_theme') || 'clair'
+    } catch {
+      return 'clair'
+    }
+  })
 
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme)
-    localStorage.setItem('dockerforge_theme', theme)
+    try {
+      localStorage.setItem('dockerforge_theme', theme)
+    } catch (err) {
+      console.error('DockerForge — impossible de mémoriser le thème :', err)
+    }
   }, [theme])
 
   function basculerTheme() {
@@ -167,6 +177,12 @@ function App() {
     const fichier = e.target.files[0]
     if (!fichier) return
     const lecteur = new FileReader()
+    // Même protection que pour l'import de docker-compose.yml : sans
+    // onerror, un échec de lecture du fichier ne déclenche jamais onload et
+    // laisse l'import échouer en silence.
+    lecteur.onerror = () => {
+      setErreursImport(["Impossible de lire ce fichier (déplacé, supprimé, ou accès refusé depuis la sélection)."])
+    }
     lecteur.onload = () => {
       try {
         const donnees = JSON.parse(lecteur.result)
@@ -206,6 +222,13 @@ function App() {
     const fichier = e.target.files[0]
     if (!fichier) return
     const lecteur = new FileReader()
+    // Sans ce gestionnaire, un échec de lecture (fichier déplacé/supprimé
+    // entre la sélection et la lecture, accès refusé...) ne déclenchait
+    // jamais onload : l'import échouait en silence, sans le moindre
+    // message pour la personne qui vient de cliquer sur "Importer".
+    lecteur.onerror = () => {
+      setErreursImport(["Impossible de lire ce fichier (déplacé, supprimé, ou accès refusé depuis la sélection)."])
+    }
     lecteur.onload = () => {
       const { services: importes, networks: networksImportes, erreurs } = importerDockerCompose(lecteur.result)
       setErreursImport(erreurs)

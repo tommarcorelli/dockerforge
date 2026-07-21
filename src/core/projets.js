@@ -56,8 +56,20 @@ export function chargerProjets() {
   return { projets: [p], actifId: p.id }
 }
 
+// N'utilise jamais un throw ici : cette fonction est appelée depuis un
+// useEffect à chaque changement d'état — une exception non interceptée y
+// remonterait jusqu'au ErrorBoundary racine et afficherait un écran
+// "erreur fatale" (avec option de tout effacer !) juste parce que le
+// stockage local est plein ou indisponible, ce qui serait bien pire que de
+// perdre silencieusement la dernière sauvegarde automatique.
 export function sauvegarderProjets(data) {
-  localStorage.setItem(CLE_PROJETS, JSON.stringify(data))
+  try {
+    localStorage.setItem(CLE_PROJETS, JSON.stringify(data))
+    return true
+  } catch (err) {
+    console.error('DockerForge — impossible de sauvegarder les projets (stockage plein ou indisponible) :', err)
+    return false
+  }
 }
 
 // Exporte un projet vers un objet JSON portable (sans son id interne), pour
