@@ -34,6 +34,45 @@ function App() {
   const [paletteOuverte, setPaletteOuverte] = useState(false)
   const [raccourcisOuverts, setRaccourcisOuverts] = useState(false)
 
+  // Historique (Ctrl+Z / Ctrl+Maj+Z) : complète le toast "Annuler" (une
+  // seule action, quelques secondes) par une pile multi-niveaux couvrant
+  // aussi les actions qui n'en avaient aucune (édition, réordonnancement,
+  // chargement d'une stack/d'un modèle, réseaux, import). Remise à zéro à
+  // chaque changement de projet — annuler une action d'un autre projet
+  // n'aurait pas de sens.
+  const historiqueRef = useRef({ passe: [], futur: [] })
+  const [histoVersion, setHistoVersion] = useState(0)
+
+  useEffect(() => {
+    historiqueRef.current = { passe: [], futur: [] }
+    setHistoVersion((v) => v + 1)
+  }, [etat.actifId])
+
+  function enregistrerHistorique() {
+    historiqueRef.current.passe.push({ services, networks })
+    if (historiqueRef.current.passe.length > 50) historiqueRef.current.passe.shift()
+    historiqueRef.current.futur = []
+    setHistoVersion((v) => v + 1)
+  }
+
+  function annulerHistorique() {
+    const h = historiqueRef.current
+    if (h.passe.length === 0) return
+    const precedent = h.passe.pop()
+    h.futur.push({ services, networks })
+    patcherProjetActif(() => precedent)
+    setHistoVersion((v) => v + 1)
+  }
+
+  function refaireHistorique() {
+    const h = historiqueRef.current
+    if (h.futur.length === 0) return
+    const suivant = h.futur.pop()
+    h.passe.push({ services, networks })
+    patcherProjetActif(() => suivant)
+    setHistoVersion((v) => v + 1)
+  }
+
   // Déclenche un toast "annuler" après une suppression : garde l'action de
   // restauration en mémoire pendant quelques secondes avant de l'oublier.
   function declencherUndo(message, restaurer) {
@@ -200,10 +239,12 @@ function App() {
   // --- Réseaux ---
 
   function ajouterReseau(reseau) {
+    enregistrerHistorique()
     patcherProjetActif((p) => ({ networks: [...p.networks, reseau] }))
   }
 
   function supprimerReseau(nom) {
+    enregistrerHistorique()
     patcherProjetActif((p) => ({
       networks: p.networks.filter((n) => n.nom !== nom),
       services: p.services.map((s) => ({ ...s, networks: (s.networks || []).filter((n) => n !== nom) })),
@@ -211,6 +252,7 @@ function App() {
   }
 
   function basculerReseauInterne(nom) {
+    enregistrerHistorique()
     patcherProjetActif((p) => ({
       networks: p.networks.map((n) => (n.nom === nom ? { ...n, interne: !n.interne } : n)),
     }))
@@ -233,6 +275,7 @@ function App() {
       const { services: importes, networks: networksImportes, erreurs } = importerDockerCompose(lecteur.result)
       setErreursImport(erreurs)
       if (importes.length > 0) {
+        enregistrerHistorique()
         patcherProjetActif((p) => {
           const utilises = portsHoteUtilises(p.services)
           const ajustes = importes.map((s) => ({
@@ -260,6 +303,7 @@ function App() {
   // --- Services ---
 
   function ajouterService(service) {
+    enregistrerHistorique()
     patcherProjetActif((p) => ({ services: [...p.services, service] }))
   }
 
@@ -288,6 +332,7 @@ function App() {
   }
 
   function modifierService(serviceModifie) {
+    enregistrerHistorique()
     patcherProjetActif((p) => {
       const ancien = p.services.find((s) => s.id === serviceEnEditionId)
       const nomChange = ancien && ancien.name !== serviceModifie.name
@@ -308,6 +353,7 @@ function App() {
   }
 
   function dupliquerService(id) {
+    enregistrerHistorique()
     patcherProjetActif((p) => {
       const original = p.services.find((s) => s.id === id)
       if (!original) return {}
@@ -325,6 +371,7 @@ function App() {
   }
 
   function reordonnerServices(indexDepart, indexArrivee) {
+    enregistrerHistorique()
     patcherProjetActif((p) => {
       const liste = [...p.services]
       const [deplace] = liste.splice(indexDepart, 1)
@@ -334,6 +381,7 @@ function App() {
   }
 
   function chargerStack(stack) {
+    enregistrerHistorique()
     patcherProjetActif((p) => {
       const utilises = portsHoteUtilises(p.services)
       const nouveaux = construireStack(stack, utilises)
@@ -352,6 +400,7 @@ function App() {
   }
 
   function chargerModeleDansProjet(modele) {
+    enregistrerHistorique()
     patcherProjetActif((p) => {
       const utilises = portsHoteUtilises(p.services)
       const nouveau = instancierModele(modele, utilises)
@@ -495,6 +544,15 @@ function App() {
       } else if (ctrlOuCmd && e.key.toLowerCase() === 's') {
         e.preventDefault()
         telechargerComposeRapide()
+      } else if (ctrlOuCmd && !cibleEstUnChamp && e.key.toLowerCase() === 'z' && e.shiftKey) {
+        e.preventDefault()
+        refaireHistorique()
+      } else if (ctrlOuCmd && !cibleEstUnChamp && e.key.toLowerCase() === 'z') {
+        e.preventDefault()
+        annulerHistorique()
+      } else if (ctrlOuCmd && !cibleEstUnChamp && e.key.toLowerCase() === 'y') {
+        e.preventDefault()
+        refaireHistorique()
       } else if (e.key === '?' && !cibleEstUnChamp) {
         e.preventDefault()
         setRaccourcisOuverts((o) => !o)
@@ -508,7 +566,7 @@ function App() {
     }
     window.addEventListener('keydown', onKeyDown)
     return () => window.removeEventListener('keydown', onKeyDown)
-  }, [yaml, services.length, serviceEnEditionId, guideUtilisationOuvert, guideInstallationOuvert, paletteOuverte, raccourcisOuverts])
+  }, [yaml, services, networks, histoVersion, serviceEnEditionId, guideUtilisationOuvert, guideInstallationOuvert, paletteOuverte, raccourcisOuverts])
 
   return (
     <div className="app">
@@ -550,6 +608,22 @@ function App() {
           </div>
 
           <div className="guide-boutons">
+            <button
+              className="btn-discret btn-guide"
+              onClick={annulerHistorique}
+              disabled={historiqueRef.current.passe.length === 0}
+              title="Annuler la dernière action (Ctrl+Z)"
+            >
+              ↺ Annuler{historiqueRef.current.passe.length > 0 ? ` (${historiqueRef.current.passe.length})` : ''}
+            </button>
+            <button
+              className="btn-discret btn-guide"
+              onClick={refaireHistorique}
+              disabled={historiqueRef.current.futur.length === 0}
+              title="Rétablir l'action annulée (Ctrl+Maj+Z)"
+            >
+              ↻ Rétablir{historiqueRef.current.futur.length > 0 ? ` (${historiqueRef.current.futur.length})` : ''}
+            </button>
             <button className="btn-discret btn-guide" onClick={() => setPaletteOuverte(true)}>
               ⌘K Palette de commandes
             </button>
@@ -745,6 +819,8 @@ function App() {
         onToutEffacer={reinitialiser}
         onOuvrirRaccourcis={() => setRaccourcisOuverts(true)}
         onSecuriserSecrets={securiserTousLesSecrets}
+        onAnnuler={annulerHistorique}
+        onRefaire={refaireHistorique}
       />
 
       {undo && (

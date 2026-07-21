@@ -300,6 +300,74 @@ test('buildDockerRunScript ajoute --log-opt quand une limite de logs est renseig
   assertInclut(script, '--log-opt max-file=3')
 })
 
+console.log('\n--- durcissement du conteneur (security) ---')
+
+test('génère read_only, cap_drop et security_opt dans le docker-compose.yml', () => {
+  const yaml = buildDockerCompose([
+    serviceBase({ security: { readOnly: true, dropAllCaps: true, noNewPrivileges: true, capAdd: ['net_bind_service'] } }),
+  ])
+  assertInclut(yaml, '    read_only: true')
+  assertInclut(yaml, '    cap_drop:')
+  assertInclut(yaml, '      - ALL')
+  assertInclut(yaml, '    cap_add:')
+  assertInclut(yaml, '      - NET_BIND_SERVICE')
+  assertInclut(yaml, '    security_opt:')
+  assertInclut(yaml, '      - no-new-privileges:true')
+})
+
+test("n'ajoute aucun champ de durcissement par défaut", () => {
+  const yaml = buildDockerCompose([serviceBase()])
+  assert(!yaml.includes('read_only'), 'ne devrait pas contenir read_only par défaut')
+  assert(!yaml.includes('cap_drop'), 'ne devrait pas contenir cap_drop par défaut')
+  assert(!yaml.includes('security_opt'), 'ne devrait pas contenir security_opt par défaut')
+})
+
+test('buildDockerRunScript ajoute les options équivalentes (--read-only, --cap-drop, --cap-add, --security-opt)', () => {
+  const script = buildDockerRunScript([
+    serviceBase({ security: { readOnly: true, dropAllCaps: true, noNewPrivileges: true, capAdd: ['chown'] } }),
+  ])
+  assertInclut(script, '--read-only')
+  assertInclut(script, '--cap-drop ALL')
+  assertInclut(script, '--cap-add CHOWN')
+  assertInclut(script, '--security-opt no-new-privileges:true')
+})
+
+test('buildKubernetesManifests traduit le durcissement en securityContext', () => {
+  const yaml = buildKubernetesManifests([
+    serviceBase({ security: { readOnly: true, dropAllCaps: true, noNewPrivileges: true, capAdd: ['chown'] } }),
+  ])
+  assertInclut(yaml, 'securityContext:')
+  assertInclut(yaml, 'readOnlyRootFilesystem: true')
+  assertInclut(yaml, 'allowPrivilegeEscalation: false')
+  assertInclut(yaml, 'drop:')
+  assertInclut(yaml, '- ALL')
+  assertInclut(yaml, 'add:')
+  assertInclut(yaml, '- CHOWN')
+})
+
+test("importerDockerCompose relit fidèlement le durcissement d'un service (round-trip)", () => {
+  const yaml = buildDockerCompose([
+    serviceBase({ name: 'app', security: { readOnly: true, dropAllCaps: true, noNewPrivileges: true, capAdd: ['net_bind_service'] } }),
+  ])
+  const { services } = importerDockerCompose(yaml)
+  assert(services[0].security.readOnly === true, 'readOnly devrait être relu')
+  assert(services[0].security.dropAllCaps === true, 'dropAllCaps devrait être relu')
+  assert(services[0].security.noNewPrivileges === true, 'noNewPrivileges devrait être relu')
+  assert(
+    services[0].security.capAdd.includes('NET_BIND_SERVICE'),
+    `capAdd devrait contenir NET_BIND_SERVICE, obtenu ${JSON.stringify(services[0].security.capAdd)}`
+  )
+})
+
+test("importerDockerCompose ne restaure aucun réglage de durcissement en son absence", () => {
+  const yaml = buildDockerCompose([serviceBase({ name: 'app' })])
+  const { services } = importerDockerCompose(yaml)
+  assert(services[0].security.readOnly === false, 'readOnly devrait être false par défaut')
+  assert(services[0].security.dropAllCaps === false, 'dropAllCaps devrait être false par défaut')
+  assert(services[0].security.noNewPrivileges === false, 'noNewPrivileges devrait être false par défaut')
+  assert(services[0].security.capAdd.length === 0, 'capAdd devrait être vide par défaut')
+})
+
 console.log('\n--- genererMotDePasse / estValeurFaible ---')
 
 test('genererMotDePasse produit une chaîne de 32 caractères alphanumériques', () => {
@@ -419,6 +487,40 @@ test('auditSecurite compte correctement ports, healthcheck, secrets et tags', ()
   assert(audit.motsDePasseParDefaut === 1, `motsDePasseParDefaut devrait être 1, obtenu ${audit.motsDePasseParDefaut}`)
   assert(audit.tagsNonFiges === 1, `tagsNonFiges devrait être 1 (nginx:latest), obtenu ${audit.tagsNonFiges}`)
   assert(audit.niveau === 'a_ameliorer', `niveau devrait être "a_ameliorer", obtenu ${audit.niveau}`)
+  assert(audit.score < 100, `score devrait être pénalisé, obtenu ${audit.score}`)
+})
+
+test('auditSecurite renvoie un score de 100 pour un projet vide', () => {
+  const audit = auditSecurite([])
+  assert(audit.score === 100, `score devrait être 100 pour un projet vide, obtenu ${audit.score}`)
+})
+
+test('auditSecurite renvoie un score de 100 pour un projet propre', () => {
+  const audit = auditSecurite([
+    serviceBase({
+      name: 'web', image: 'nginx:1.25',
+      healthcheck: { enabled: true, test: 'curl -f http://localhost' },
+      env: [],
+    }),
+  ])
+  assert(audit.score === 100, `score devrait être 100, obtenu ${audit.score}`)
+})
+
+test('auditSecurite ne descend jamais sous 0', () => {
+  const services = Array.from({ length: 10 }, (_, i) =>
+    serviceBase({ name: `s${i}`, image: 'nginx:latest', env: [{ key: 'PASSWORD', value: 'admin' }] })
+  )
+  const audit = auditSecurite(services)
+  assert(audit.score === 0, `score devrait être plafonné à 0, obtenu ${audit.score}`)
+})
+
+test('auditSecurite compte les conteneurs durcis', () => {
+  const services = [
+    serviceBase({ name: 'web', security: { readOnly: true } }),
+    serviceBase({ name: 'db' }),
+  ]
+  const audit = auditSecurite(services)
+  assert(audit.servicesDurcis === 1, `servicesDurcis devrait être 1, obtenu ${audit.servicesDurcis}`)
 })
 
 test('auditSecurite renvoie "bon" pour un projet propre', () => {

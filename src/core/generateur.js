@@ -45,6 +45,7 @@ export function auditSecurite(services, options = {}) {
   let secretsEnClair = 0
   let motsDePasseParDefaut = 0
   let tagsNonFiges = 0
+  let servicesDurcis = 0
 
   for (const s of services) {
     portsExposes += (s.ports || []).filter((p) => p.host && p.container).length
@@ -55,12 +56,28 @@ export function auditSecurite(services, options = {}) {
     motsDePasseParDefaut += secretsService.filter((e) => estValeurFaible(e.value)).length
 
     if (s.image && (tagImage(s.image) === null || tagImage(s.image) === 'latest')) tagsNonFiges += 1
+
+    if (s.security && (s.security.readOnly || s.security.noNewPrivileges || s.security.dropAllCaps)) {
+      servicesDurcis += 1
+    }
   }
 
   const totalServices = services.length
   let niveau = 'bon'
   if (motsDePasseParDefaut > 0 || secretsEnClair > 0) niveau = 'a_ameliorer'
   else if (tagsNonFiges > 0 || servicesAvecHealthcheck < totalServices) niveau = 'moyen'
+
+  // Score chiffré (0-100) résumant les mêmes constats en une seule valeur,
+  // pour un coup d'œil encore plus rapide que la liste détaillée. Un projet
+  // vide n'a rien à se reprocher : score parfait par défaut.
+  let score = 100
+  if (totalServices > 0) {
+    score -= Math.min(40, motsDePasseParDefaut * 20)
+    score -= Math.min(30, secretsEnClair * 10)
+    score -= Math.min(15, tagsNonFiges * 3)
+    score -= Math.min(15, (totalServices - servicesAvecHealthcheck) * 3)
+    score = Math.max(0, Math.min(100, score))
+  }
 
   return {
     totalServices,
@@ -69,6 +86,8 @@ export function auditSecurite(services, options = {}) {
     secretsEnClair,
     motsDePasseParDefaut,
     tagsNonFiges,
+    servicesDurcis,
+    score,
     niveau,
   }
 }
@@ -284,6 +303,24 @@ export function buildKubernetesManifests(services, options = {}) {
       if (service.memLimit) lignes.push(`              memory: ${yamlValue(service.memLimit)}`)
       if (service.cpus) lignes.push(`              cpu: ${yamlValue(String(service.cpus))}`)
     }
+    const securiteK8s = service.security || {}
+    const capAjouteesK8s = (securiteK8s.capAdd || []).filter((c) => c && c.trim() !== '')
+    if (securiteK8s.readOnly || securiteK8s.noNewPrivileges || securiteK8s.dropAllCaps || capAjouteesK8s.length > 0) {
+      lignes.push('          securityContext:')
+      if (securiteK8s.readOnly) lignes.push('            readOnlyRootFilesystem: true')
+      if (securiteK8s.noNewPrivileges) lignes.push('            allowPrivilegeEscalation: false')
+      if (securiteK8s.dropAllCaps || capAjouteesK8s.length > 0) {
+        lignes.push('            capabilities:')
+        if (securiteK8s.dropAllCaps) {
+          lignes.push('              drop:')
+          lignes.push('                - ALL')
+        }
+        if (capAjouteesK8s.length > 0) {
+          lignes.push('              add:')
+          for (const c of capAjouteesK8s) lignes.push(`                - ${c.trim().toUpperCase()}`)
+        }
+      }
+    }
     documents.push(lignes.join('\n'))
 
     if (portsConteneur.length > 0) {
@@ -403,6 +440,26 @@ export function buildDockerCompose(services, options = {}) {
       if (service.logMaxFile && service.logMaxFile.trim() !== '') {
         lines.push(`        max-file: ${yamlValue(String(service.logMaxFile))}`)
       }
+    }
+
+    const security = service.security || {}
+    if (security.readOnly) {
+      lines.push('    read_only: true')
+    }
+    if (security.dropAllCaps) {
+      lines.push('    cap_drop:')
+      lines.push('      - ALL')
+    }
+    const capAjoutees = (security.capAdd || []).filter((c) => c && c.trim() !== '')
+    if (capAjoutees.length > 0) {
+      lines.push('    cap_add:')
+      for (const c of capAjoutees) {
+        lines.push(`      - ${c.trim().toUpperCase()}`)
+      }
+    }
+    if (security.noNewPrivileges) {
+      lines.push('    security_opt:')
+      lines.push('      - no-new-privileges:true')
     }
 
     if (service.networks && service.networks.length > 0) {
@@ -548,6 +605,13 @@ export function buildDockerRunScript(services, options = {}) {
       parts.push(`--log-opt max-size=${shValue(service.logMaxSize)}`)
     }
     if (service.logMaxFile && service.logMaxFile.trim() !== '') parts.push(`--log-opt max-file=${shValue(String(service.logMaxFile))}`)
+    const securiteRun = service.security || {}
+    if (securiteRun.readOnly) parts.push('--read-only')
+    if (securiteRun.dropAllCaps) parts.push('--cap-drop ALL')
+    for (const c of (securiteRun.capAdd || []).filter((c) => c && c.trim() !== '')) {
+      parts.push(`--cap-add ${c.trim().toUpperCase()}`)
+    }
+    if (securiteRun.noNewPrivileges) parts.push('--security-opt no-new-privileges:true')
     parts.push(shValue(service.image || 'nginx:latest'))
 
     lignes.push(parts.join(' \\\n  '))

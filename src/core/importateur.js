@@ -126,6 +126,22 @@ function normaliserTraefik(labels) {
   return { active: true, domaine, port }
 }
 
+// Reconstruit les réglages de durcissement d'un conteneur (read_only,
+// cap_drop, cap_add, security_opt) à partir d'un service importé, dans les
+// deux formats acceptés par Compose pour cap_drop/cap_add et security_opt
+// (liste de chaînes dans les deux cas).
+function normaliserSecurity(def) {
+  const capDrop = Array.isArray(def.cap_drop) ? def.cap_drop.map((c) => String(c).toUpperCase()) : []
+  const capAdd = Array.isArray(def.cap_add) ? def.cap_add.map((c) => String(c).toUpperCase()) : []
+  const securityOpt = Array.isArray(def.security_opt) ? def.security_opt.map(String) : []
+  return {
+    readOnly: !!def.read_only,
+    dropAllCaps: capDrop.includes('ALL'),
+    capAdd,
+    noNewPrivileges: securityOpt.some((o) => o.replace(/\s/g, '').startsWith('no-new-privileges:true')),
+  }
+}
+
 function normaliserHealthcheck(hc) {
   const vide = { enabled: false, test: '', interval: '30s', timeout: '5s', retries: 3 }
   if (!hc || !hc.test) return vide
@@ -195,6 +211,7 @@ export function importerDockerCompose(texteYaml) {
       logMaxSize: (def.logging && def.logging.options && def.logging.options['max-size']) || '',
       logMaxFile: (def.logging && def.logging.options && def.logging.options['max-file']) ? String(def.logging.options['max-file']) : '',
       traefik: normaliserTraefik(def.labels),
+      security: normaliserSecurity(def),
     })
   }
 

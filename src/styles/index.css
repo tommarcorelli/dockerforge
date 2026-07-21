@@ -497,6 +497,14 @@ button:active { transform: scale(0.97); }
   color: var(--docker);
   background: var(--panel);
 }
+.btn-discret:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+.btn-discret:disabled:hover {
+  border-color: var(--line);
+  color: var(--ink-2);
+}
 
 .btn-avance {
   width: 100%;
@@ -900,6 +908,31 @@ button:active { transform: scale(0.97); }
   margin-left: 0.6rem;
   padding: 0.1rem 0.55rem;
   font-size: 0.78rem;
+}
+
+.audit-score-anneau {
+  --taille: 1.9rem;
+  width: var(--taille);
+  height: var(--taille);
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  background: conic-gradient(var(--anneau-couleur, var(--mint)) calc(var(--score, 100) * 1%), var(--line) 0);
+}
+.audit-score-anneau-bon { --anneau-couleur: var(--mint); }
+.audit-score-anneau-moyen { --anneau-couleur: var(--gold); }
+.audit-score-anneau-a_ameliorer { --anneau-couleur: var(--danger); }
+.audit-score-valeur {
+  width: calc(var(--taille) - 0.5rem);
+  height: calc(var(--taille) - 0.5rem);
+  border-radius: 50%;
+  background: var(--panel-2);
+  display: grid;
+  place-items: center;
+  font-size: 0.62rem;
+  font-weight: 700;
+  color: var(--ink);
 }
 
 .code-preview {

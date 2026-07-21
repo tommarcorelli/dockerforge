@@ -117,6 +117,14 @@ function Preview({
         <div className={`audit-securite audit-${audit.niveau}`}>
           <button type="button" className="audit-entete" onClick={() => setAuditOuvert((o) => !o)}>
             <span>🛡 Mini-audit sécurité</span>
+            <span className="audit-score" title="Score indicatif sur 100, basé sur les constats ci-dessous">
+              <span
+                className={`audit-score-anneau audit-score-anneau-${audit.niveau}`}
+                style={{ '--score': audit.score }}
+              >
+                <span className="audit-score-valeur">{audit.score}</span>
+              </span>
+            </span>
             <span className={`audit-niveau audit-niveau-${audit.niveau}`}>
               {{ bon: 'Bon', moyen: 'À surveiller', a_ameliorer: 'À améliorer' }[audit.niveau]}
             </span>
@@ -143,6 +151,9 @@ function Preview({
               </li>
               <li className={audit.tagsNonFiges === 0 ? 'audit-ok' : ''}>
                 {audit.tagsNonFiges} image{audit.tagsNonFiges !== 1 ? 's' : ''} sans version figée (tag "latest")
+              </li>
+              <li className={audit.servicesDurcis === audit.totalServices ? 'audit-ok' : ''}>
+                {audit.servicesDurcis}/{audit.totalServices} conteneur{audit.totalServices !== 1 ? 's' : ''} durci{audit.totalServices !== 1 ? 's' : ''} (read-only, capacités, privilèges)
               </li>
             </ul>
           )}

@@ -102,6 +102,14 @@ dockerforge/
 - Politique de redémarrage (`restart`), dépendances (`depends_on`),
   vérification de santé (`healthcheck`), limites de ressources (`mem_limit`,
   `cpus`), profils d'activation (`profiles`).
+- **Durcissement du conteneur (nouveau)** : système de fichiers en lecture
+  seule (`read_only`), interdiction de l'élévation de privilèges
+  (`security_opt: no-new-privileges:true`), suppression de toutes les
+  capacités Linux par défaut (`cap_drop: ALL`) avec possibilité d'en
+  rendre certaines explicitement (`cap_add`). Généré dans le YAML, le
+  script `docker run` équivalent (`--read-only`, `--cap-drop`, `--cap-add`,
+  `--security-opt`) et le manifeste Kubernetes (`securityContext`) ; relu
+  correctement à l'import d'un compose existant.
 - **Rotation des logs (nouveau)** : taille max par fichier et nombre de
   fichiers conservés (driver `json-file`), pour éviter qu'un conteneur qui
   tourne longtemps ne remplisse le disque avec ses logs. Génère le bloc
@@ -188,7 +196,10 @@ dockerforge/
 - Détection des secrets personnalisable par projet (liste noire : toujours
   traiter comme secret ; liste blanche : ne jamais traiter comme secret).
 - Mini-audit sécurité repliable dans l'aperçu (ports exposés, healthchecks,
-  secrets en clair, mots de passe par défaut, images sans version figée).
+  secrets en clair, mots de passe par défaut, images sans version figée,
+  conteneurs durcis). **Score chiffré sur 100 (nouveau)** affiché sous forme
+  d'anneau à côté du badge Bon/À surveiller/À améliorer, pour un coup d'œil
+  encore plus rapide.
 
 **Export**
 - Copier le YAML, télécharger le `docker-compose.yml` seul, ou un `.zip`
@@ -208,6 +219,13 @@ dockerforge/
 **Confort**
 - Duplication et réordonnancement des conteneurs (flèches ▲▼ ou glisser-déposer).
 - Recherche dans la liste des conteneurs ajoutés (à partir de 5).
+- **Annuler/Rétablir multi-niveaux (nouveau)** : `Ctrl+Z` / `Ctrl+Maj+Z`
+  (ou `Ctrl+Y`) annule/rétablit l'historique complet des actions du projet
+  actif (ajout, édition, duplication, réordonnancement, chargement de
+  stack/modèle, réseaux, import) — jusqu'à 50 étapes. Vient compléter le
+  toast "↺ Annuler" existant (suppression/tout-effacer/sécurisation), qui
+  reste dédié à une seule action ponctuelle. Boutons dédiés dans l'en-tête
+  et la palette de commandes, réinitialisé à chaque changement de projet.
 - Annuler (↺) après suppression d'un conteneur ou "Tout effacer", pendant
   quelques secondes.
 - **Modèles de service réutilisables** (★) : enregistre un conteneur configuré
@@ -235,6 +253,21 @@ Correctifs récents._
 
 ## Correctifs récents
 
+- **Durcissement du conteneur** : nouvelle section dans « Options avancées »
+  — lecture seule (`read_only`), `no-new-privileges`, `cap_drop: ALL` +
+  `cap_add` personnalisé. Généré dans le YAML, le script `docker run` et le
+  manifeste Kubernetes (`securityContext`), relu fidèlement à l'import.
+- **Score de sécurité chiffré** : le mini-audit affiche désormais un score
+  sur 100 (anneau visuel à côté du badge Bon/À surveiller/À améliorer),
+  calculé à partir des mêmes constats (mots de passe faibles, secrets en
+  clair, tags non figés, healthchecks manquants). Nouvelle ligne dans
+  l'audit comptant les conteneurs durcis.
+- **Annuler/Rétablir multi-niveaux** : `Ctrl+Z` / `Ctrl+Maj+Z` (ou `Ctrl+Y`)
+  annule/rétablit jusqu'à 50 actions du projet actif (édition, duplication,
+  réordonnancement, chargement de stack/modèle, réseaux, import) —
+  complète le toast d'annulation ponctuelle existant. Boutons dans
+  l'en-tête (avec compteur) et entrées dans la palette de commandes ;
+  réinitialisé à chaque changement de projet.
 - **Rotation des logs par service** : nouvelle option dans « Options
   avancées » (taille max par fichier + nombre de fichiers conservés,
   driver `json-file`) — génère `logging:` dans le `docker-compose.yml` et

@@ -2,6 +2,8 @@
 const RACCOURCIS = [
   { touches: ['Ctrl', 'K'], description: 'Ouvrir la palette de commandes' },
   { touches: ['Ctrl', 'S'], description: 'Télécharger docker-compose.yml' },
+  { touches: ['Ctrl', 'Z'], description: 'Annuler la dernière action' },
+  { touches: ['Ctrl', 'Maj', 'Z'], description: 'Rétablir l\'action annulée' },
   { touches: ['↑', '↓'], description: 'Naviguer dans la palette de commandes' },
   { touches: ['Entrée'], description: 'Valider le choix dans la palette' },
   { touches: ['Échap'], description: "Fermer la fenêtre ouverte (palette, guide, édition d'un service...)" },

@@ -6,6 +6,7 @@ import { STACKS } from '../core/stacks.js'
 function CommandPalette({
   ouvert, onFermer, onChargerStack, onNaviguerOnglet,
   onNouveauProjet, onBasculerTheme, onTelechargerCompose, onToutEffacer, onOuvrirRaccourcis, onSecuriserSecrets,
+  onAnnuler, onRefaire,
 }) {
   const [requete, setRequete] = useState('')
   const [index, setIndex] = useState(0)
@@ -20,6 +21,8 @@ function CommandPalette({
       { id: 'theme', type: 'action', label: 'Basculer le thème clair/sombre', executer: onBasculerTheme },
       { id: 'telecharger', type: 'action', label: 'Télécharger docker-compose.yml', executer: onTelechargerCompose },
       { id: 'tout-effacer', type: 'action', label: 'Tout effacer les conteneurs du projet actif', executer: onToutEffacer },
+      { id: 'annuler', type: 'action', label: '↺ Annuler la dernière action', executer: onAnnuler },
+      { id: 'refaire', type: 'action', label: "↻ Rétablir l'action annulée", executer: onRefaire },
       { id: 'raccourcis', type: 'action', label: 'Afficher les raccourcis clavier', executer: onOuvrirRaccourcis },
       { id: 'securiser-secrets', type: 'action', label: '🎲 Sécuriser tous les mots de passe faibles', executer: onSecuriserSecrets },
     ]
@@ -31,7 +34,7 @@ function CommandPalette({
       executer: () => onChargerStack(s),
     }))
     return [...actions, ...stacksCmd]
-  }, [onChargerStack, onNaviguerOnglet, onNouveauProjet, onBasculerTheme, onTelechargerCompose, onToutEffacer, onOuvrirRaccourcis, onSecuriserSecrets])
+  }, [onChargerStack, onNaviguerOnglet, onNouveauProjet, onBasculerTheme, onTelechargerCompose, onToutEffacer, onOuvrirRaccourcis, onSecuriserSecrets, onAnnuler, onRefaire])
 
   const filtrees = useMemo(() => {
     const q = requete.trim().toLowerCase()

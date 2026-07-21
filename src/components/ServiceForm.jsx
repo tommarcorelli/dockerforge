@@ -28,6 +28,7 @@ const serviceVide = () => ({
   logMaxSize: '',
   logMaxFile: '',
   traefik: { active: false, domaine: '', port: '' },
+  security: { readOnly: false, noNewPrivileges: false, dropAllCaps: false, capAdd: '' },
 })
 
 // Formulaire d'ajout/édition d'un service Docker — 3 niveaux de complexité :
@@ -50,7 +51,17 @@ function ServiceForm({ onAdd, servicesExistants, servicesActuels, networksDispon
   // mode édition (annulation ou validation), le formulaire redevient vide.
   useEffect(() => {
     if (serviceAEditer) {
-      setService({ ...serviceVide(), ...serviceAEditer })
+      const securityBrut = serviceAEditer.security || {}
+      setService({
+        ...serviceVide(),
+        ...serviceAEditer,
+        security: {
+          readOnly: !!securityBrut.readOnly,
+          noNewPrivileges: !!securityBrut.noNewPrivileges,
+          dropAllCaps: !!securityBrut.dropAllCaps,
+          capAdd: Array.isArray(securityBrut.capAdd) ? securityBrut.capAdd.join(', ') : (securityBrut.capAdd || ''),
+        },
+      })
       setPortsAuto(false)
       if ((serviceAEditer.volumes || []).some((v) => v && v.trim() !== '') ||
           (serviceAEditer.env || []).some((e) => e.key && e.key.trim() !== '')) {
@@ -74,6 +85,13 @@ function ServiceForm({ onAdd, servicesExistants, servicesActuels, networksDispon
     setService((s) => ({
       ...s,
       traefik: { active: false, domaine: '', port: '', ...s.traefik, [champ]: valeur },
+    }))
+  }
+
+  function majSecurity(champ, valeur) {
+    setService((s) => ({
+      ...s,
+      security: { readOnly: false, noNewPrivileges: false, dropAllCaps: false, capAdd: '', ...s.security, [champ]: valeur },
     }))
   }
 
@@ -190,10 +208,20 @@ function ServiceForm({ onAdd, servicesExistants, servicesActuels, networksDispon
   function soumettre(e) {
     e.preventDefault()
     if (!service.name.trim() || !service.image.trim()) return
+    const aEnvoyer = {
+      ...service,
+      security: {
+        ...service.security,
+        capAdd: String(service.security?.capAdd || '')
+          .split(',')
+          .map((c) => c.trim())
+          .filter(Boolean),
+      },
+    }
     if (enEdition) {
-      onUpdate(service)
+      onUpdate(aEnvoyer)
     } else {
-      onAdd(service)
+      onAdd(aEnvoyer)
       setService(serviceVide())
       setPortsAuto(true)
     }
@@ -569,6 +597,53 @@ function ServiceForm({ onAdd, servicesExistants, servicesActuels, networksDispon
                   onChange={(e) => majTraefik('port', e.target.value)}
                 />
               </div>
+            )}
+          </fieldset>
+
+          <fieldset>
+            <legend>
+              <span className="label-avec-aide">
+                Durcissement du conteneur
+                <Aide texte="Réduit ce que le conteneur peut faire, même s'il est compromis : moins de capacités Linux, pas d'écriture sur le système de fichiers, pas d'élévation de privilèges. Recommandé pour tout service exposé, surtout via Traefik." />
+              </span>
+            </legend>
+            <label className="option-secrets">
+              <input
+                type="checkbox"
+                checked={!!service.security?.readOnly}
+                onChange={(e) => majSecurity('readOnly', e.target.checked)}
+              />
+              Système de fichiers en lecture seule (read_only)
+            </label>
+            <label className="option-secrets">
+              <input
+                type="checkbox"
+                checked={!!service.security?.noNewPrivileges}
+                onChange={(e) => majSecurity('noNewPrivileges', e.target.checked)}
+              />
+              Interdire l'élévation de privilèges (no-new-privileges)
+            </label>
+            <label className="option-secrets">
+              <input
+                type="checkbox"
+                checked={!!service.security?.dropAllCaps}
+                onChange={(e) => majSecurity('dropAllCaps', e.target.checked)}
+              />
+              Supprimer toutes les capacités Linux par défaut (cap_drop: ALL)
+            </label>
+            {service.security?.dropAllCaps && (
+              <input
+                type="text"
+                placeholder="Capacités à rendre (ex: NET_BIND_SERVICE, CHOWN)"
+                value={service.security?.capAdd || ''}
+                onChange={(e) => majSecurity('capAdd', e.target.value)}
+                style={{ marginTop: '0.5rem' }}
+              />
+            )}
+            {service.security?.readOnly && (
+              <p className="reseaux-aide" style={{ marginTop: '0.5rem', marginBottom: 0 }}>
+                Pense à monter en volume tout dossier où l'appli a besoin d'écrire (cache, uploads...), sinon elle risque de planter au démarrage.
+              </p>
             )}
           </fieldset>
         </>
