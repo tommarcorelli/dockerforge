@@ -139,7 +139,29 @@ function normaliserSecurity(def) {
     dropAllCaps: capDrop.includes('ALL'),
     capAdd,
     noNewPrivileges: securityOpt.some((o) => o.replace(/\s/g, '').startsWith('no-new-privileges:true')),
+    user: def.user ? String(def.user) : '',
+    init: !!def.init,
   }
+}
+
+// extra_hosts peut être une liste ("hote:ip") ou un objet ({ hote: ip }) —
+// dans les deux cas on reconstruit le format "hote:ip" utilisé par le
+// formulaire, cohérent avec ce que génère buildDockerCompose.
+function normaliserExtraHosts(extraHosts) {
+  if (!extraHosts) return ['']
+  if (Array.isArray(extraHosts)) return extraHosts.map(String)
+  if (typeof extraHosts === 'object') {
+    return Object.entries(extraHosts).map(([hote, ip]) => `${hote}:${ip}`)
+  }
+  return ['']
+}
+
+// tmpfs peut être une simple chaîne ("/tmp") ou une liste — on ramène
+// toujours au format liste utilisé par le formulaire.
+function normaliserTmpfs(tmpfs) {
+  if (!tmpfs) return ['']
+  if (Array.isArray(tmpfs)) return tmpfs.map(String)
+  return [String(tmpfs)]
 }
 
 function normaliserHealthcheck(hc) {
@@ -212,6 +234,9 @@ export function importerDockerCompose(texteYaml) {
       logMaxFile: (def.logging && def.logging.options && def.logging.options['max-file']) ? String(def.logging.options['max-file']) : '',
       traefik: normaliserTraefik(def.labels),
       security: normaliserSecurity(def),
+      stopGracePeriod: def.stop_grace_period ? String(def.stop_grace_period) : '',
+      extraHosts: normaliserExtraHosts(def.extra_hosts),
+      tmpfs: normaliserTmpfs(def.tmpfs),
     })
   }
 

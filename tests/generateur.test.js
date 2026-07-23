@@ -368,6 +368,108 @@ test("importerDockerCompose ne restaure aucun réglage de durcissement en son ab
   assert(services[0].security.capAdd.length === 0, 'capAdd devrait être vide par défaut')
 })
 
+test('génère user, init, stop_grace_period et extra_hosts dans le docker-compose.yml', () => {
+  const yaml = buildDockerCompose([
+    serviceBase({
+      security: { user: '1000:1000', init: true },
+      stopGracePeriod: '30s',
+      extraHosts: ['host.docker.internal:172.17.0.1'],
+    }),
+  ])
+  assertInclut(yaml, '    user: 1000:1000')
+  assertInclut(yaml, '    init: true')
+  assertInclut(yaml, '    stop_grace_period: 30s')
+  assertInclut(yaml, '    extra_hosts:')
+  assertInclut(yaml, 'host.docker.internal:172.17.0.1')
+})
+
+test('buildDockerRunScript ajoute --user, --init, --stop-timeout et --add-host', () => {
+  const script = buildDockerRunScript([
+    serviceBase({
+      security: { user: '1000:1000', init: true },
+      stopGracePeriod: '30s',
+      extraHosts: ['host.docker.internal:172.17.0.1'],
+    }),
+  ])
+  assertInclut(script, '--user 1000:1000')
+  assertInclut(script, '--init')
+  assertInclut(script, '--stop-timeout 30')
+  assertInclut(script, '--add-host host.docker.internal:172.17.0.1')
+})
+
+test('buildKubernetesManifests traduit user en runAsUser/runAsGroup, extra_hosts en hostAliases et stop_grace_period en terminationGracePeriodSeconds', () => {
+  const yaml = buildKubernetesManifests([
+    serviceBase({
+      security: { user: '1000:2000' },
+      stopGracePeriod: '45s',
+      extraHosts: ['monhote:10.0.0.5'],
+    }),
+  ])
+  assertInclut(yaml, 'runAsUser: 1000')
+  assertInclut(yaml, 'runAsGroup: 2000')
+  assertInclut(yaml, 'terminationGracePeriodSeconds: 45')
+  assertInclut(yaml, 'hostAliases:')
+  assertInclut(yaml, 'ip: 10.0.0.5')
+  assertInclut(yaml, '- monhote')
+})
+
+test("importerDockerCompose relit user, init, stop_grace_period et extra_hosts (round-trip)", () => {
+  const yaml = buildDockerCompose([
+    serviceBase({
+      name: 'app',
+      security: { user: '1000:1000', init: true },
+      stopGracePeriod: '30s',
+      extraHosts: ['host.docker.internal:172.17.0.1'],
+    }),
+  ])
+  const { services } = importerDockerCompose(yaml)
+  assert(services[0].security.user === '1000:1000', `user devrait être relu, obtenu ${services[0].security.user}`)
+  assert(services[0].security.init === true, 'init devrait être relu')
+  assert(services[0].stopGracePeriod === '30s', `stopGracePeriod devrait être relu, obtenu ${services[0].stopGracePeriod}`)
+  assert(
+    services[0].extraHosts.includes('host.docker.internal:172.17.0.1'),
+    `extraHosts devrait contenir l'entrée, obtenu ${JSON.stringify(services[0].extraHosts)}`
+  )
+})
+
+test('génère tmpfs dans le docker-compose.yml', () => {
+  const yaml = buildDockerCompose([serviceBase({ tmpfs: ['/tmp', '/var/cache/nginx'] })])
+  assertInclut(yaml, '    tmpfs:')
+  assertInclut(yaml, '      - /tmp')
+  assertInclut(yaml, '      - /var/cache/nginx')
+})
+
+test('buildDockerRunScript ajoute un --tmpfs par montage', () => {
+  const script = buildDockerRunScript([serviceBase({ tmpfs: ['/tmp', '/run'] })])
+  assertInclut(script, '--tmpfs /tmp')
+  assertInclut(script, '--tmpfs /run')
+})
+
+test('buildKubernetesManifests traduit tmpfs en emptyDir (Memory) + volumeMounts', () => {
+  const yaml = buildKubernetesManifests([serviceBase({ tmpfs: ['/tmp'] })])
+  assertInclut(yaml, 'volumeMounts:')
+  assertInclut(yaml, 'mountPath: /tmp')
+  assertInclut(yaml, 'volumes:')
+  assertInclut(yaml, 'emptyDir:')
+  assertInclut(yaml, 'medium: Memory')
+})
+
+test('importerDockerCompose relit tmpfs qu\'il soit déclaré en liste ou en chaîne unique', () => {
+  const yamlListe = buildDockerCompose([serviceBase({ name: 'app', tmpfs: ['/tmp', '/run'] })])
+  const { services: sListe } = importerDockerCompose(yamlListe)
+  assert(sListe[0].tmpfs.includes('/tmp') && sListe[0].tmpfs.includes('/run'), 'tmpfs (liste) devrait être relu intégralement')
+
+  const yamlChaine = 'services:\n  app:\n    image: nginx:1.25\n    tmpfs: /tmp\n'
+  const { services: sChaine } = importerDockerCompose(yamlChaine)
+  assert(sChaine[0].tmpfs.includes('/tmp'), 'tmpfs (chaîne unique) devrait être relu')
+})
+
+test("buildKubernetesManifests gère une adresse IPv6 dans extra_hosts sans la tronquer", () => {
+  const yaml = buildKubernetesManifests([serviceBase({ extraHosts: ['monhote:fe80::1'] })])
+  assertInclut(yaml, 'ip: fe80::1')
+  assertInclut(yaml, '- monhote')
+})
+
 console.log('\n--- genererMotDePasse / estValeurFaible ---')
 
 test('genererMotDePasse produit une chaîne de 32 caractères alphanumériques', () => {
@@ -449,6 +551,31 @@ test('avertit sur une image sans version figée (tag latest implicite ou explici
 
   const { avertissements: a4 } = validerServices([serviceBase({ volumes: ['/data'], image: 'registry.local:5000/app:2.0' })])
   assert(!a4.some((a) => a.includes('version figée')), 'ne doit pas confondre le port du registre avec un tag absent')
+})
+
+test('avertit sur un hôte supplémentaire mal formé (extra_hosts sans "nom:ip")', () => {
+  const { avertissements: aMal } = validerServices([serviceBase({ extraHosts: ['pasdecolonpasdip'] })])
+  assert(aMal.some((a) => a.includes('mal formé')), 'devrait avertir sur le format invalide')
+
+  const { avertissements: aBon } = validerServices([serviceBase({ extraHosts: ['host.docker.internal:172.17.0.1'] })])
+  assert(!aBon.some((a) => a.includes('mal formé')), 'ne devrait rien dire pour un format valide')
+})
+
+test('avertit si read_only est actif sans aucun volume ni tmpfs', () => {
+  const { avertissements: aSansRien } = validerServices([
+    serviceBase({ volumes: [], security: { readOnly: true } }),
+  ])
+  assert(aSansRien.some((a) => a.includes('lecture seule')), 'devrait avertir en l\'absence de volume et de tmpfs')
+
+  const { avertissements: aAvecTmpfs } = validerServices([
+    serviceBase({ volumes: [], security: { readOnly: true }, tmpfs: ['/tmp'] }),
+  ])
+  assert(!aAvecTmpfs.some((a) => a.includes('lecture seule')), 'ne devrait rien dire si un tmpfs compense')
+
+  const { avertissements: aAvecVolume } = validerServices([
+    serviceBase({ volumes: ['./data:/data'], security: { readOnly: true } }),
+  ])
+  assert(!aAvecVolume.some((a) => a.includes('lecture seule')), 'ne devrait rien dire si un volume existe déjà')
 })
 
 test('suggererDependancesManquantes propose une base de données pour WordPress seul', () => {

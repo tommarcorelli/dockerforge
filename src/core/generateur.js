@@ -305,10 +305,25 @@ export function buildKubernetesManifests(services, options = {}) {
     }
     const securiteK8s = service.security || {}
     const capAjouteesK8s = (securiteK8s.capAdd || []).filter((c) => c && c.trim() !== '')
-    if (securiteK8s.readOnly || securiteK8s.noNewPrivileges || securiteK8s.dropAllCaps || capAjouteesK8s.length > 0) {
+    // Kubernetes veut un uid/gid numérique (contrairement à Docker qui
+    // accepte aussi un nom d'utilisateur) — on ne traduit que ce cas-là,
+    // le reste (nom d'utilisateur textuel) n'a pas d'équivalent direct ici.
+    let runAsUser = null
+    let runAsGroup = null
+    if (securiteK8s.user && securiteK8s.user.trim() !== '') {
+      const morceaux = securiteK8s.user.trim().split(':')
+      if (/^\d+$/.test(morceaux[0])) runAsUser = morceaux[0]
+      if (morceaux[1] && /^\d+$/.test(morceaux[1])) runAsGroup = morceaux[1]
+    }
+    if (
+      securiteK8s.readOnly || securiteK8s.noNewPrivileges || securiteK8s.dropAllCaps ||
+      capAjouteesK8s.length > 0 || runAsUser !== null
+    ) {
       lignes.push('          securityContext:')
       if (securiteK8s.readOnly) lignes.push('            readOnlyRootFilesystem: true')
       if (securiteK8s.noNewPrivileges) lignes.push('            allowPrivilegeEscalation: false')
+      if (runAsUser !== null) lignes.push(`            runAsUser: ${runAsUser}`)
+      if (runAsGroup !== null) lignes.push(`            runAsGroup: ${runAsGroup}`)
       if (securiteK8s.dropAllCaps || capAjouteesK8s.length > 0) {
         lignes.push('            capabilities:')
         if (securiteK8s.dropAllCaps) {
@@ -321,6 +336,58 @@ export function buildKubernetesManifests(services, options = {}) {
         }
       }
     }
+
+    const montagesTmpfsK8s = (service.tmpfs || []).filter((t) => t && t.trim() !== '')
+    if (montagesTmpfsK8s.length > 0) {
+      lignes.push('          volumeMounts:')
+      montagesTmpfsK8s.forEach((t, i) => {
+        lignes.push(`            - name: tmpfs-${i}`)
+        lignes.push(`              mountPath: ${t.trim()}`)
+      })
+    }
+
+    // terminationGracePeriodSeconds et hostAliases se placent au niveau du
+    // pod (sibling de "containers:"), pas dans le conteneur lui-même — on
+    // les insère juste avant, la ligne "containers:" étant toujours présente.
+    const ligneSpecExtra = []
+    if (service.stopGracePeriod && /^\d+s?$/.test(service.stopGracePeriod.trim())) {
+      ligneSpecExtra.push(`      terminationGracePeriodSeconds: ${parseInt(service.stopGracePeriod, 10)}`)
+    }
+    const hotesK8s = (service.extraHosts || []).filter((h) => h && h.trim() !== '' && h.includes(':'))
+    if (hotesK8s.length > 0) {
+      ligneSpecExtra.push('      hostAliases:')
+      for (const h of hotesK8s) {
+        // On ne coupe qu'au premier ":" (pas un split naïf) pour ne pas
+        // casser une adresse IPv6 qui contient elle-même des ":" (ex.
+        // "monhote:::1" est invalide de toute façon, mais "monhote:fe80::1"
+        // doit garder "fe80::1" intact comme adresse).
+        const idxSep = h.indexOf(':')
+        const hostname = h.slice(0, idxSep).trim()
+        const ip = h.slice(idxSep + 1).trim()
+        if (hostname && ip) {
+          ligneSpecExtra.push(`        - ip: ${yamlValue(ip)}`)
+          ligneSpecExtra.push('          hostnames:')
+          ligneSpecExtra.push(`            - ${hostname}`)
+        }
+      }
+    }
+    if (montagesTmpfsK8s.length > 0) {
+      // Un tmpfs Docker est un montage en mémoire, sans persistance : un
+      // emptyDir { medium: Memory } est l'équivalent Kubernetes le plus
+      // proche (contrairement au stockage persistant, volontairement non
+      // généré ici, cf. l'avertissement en tête de fichier).
+      ligneSpecExtra.push('      volumes:')
+      montagesTmpfsK8s.forEach((_, i) => {
+        ligneSpecExtra.push(`        - name: tmpfs-${i}`)
+        ligneSpecExtra.push('          emptyDir:')
+        ligneSpecExtra.push('            medium: Memory')
+      })
+    }
+    if (ligneSpecExtra.length > 0) {
+      const idxContainers = lignes.indexOf('      containers:')
+      lignes.splice(idxContainers, 0, ...ligneSpecExtra)
+    }
+
     documents.push(lignes.join('\n'))
 
     if (portsConteneur.length > 0) {
@@ -344,7 +411,7 @@ export function buildKubernetesManifests(services, options = {}) {
 }
 
 export function buildDockerCompose(services, options = {}) {
-  const { extraireSecrets = false, nomProjet = '', networks = [], secretsInclus = [], secretsExclus = [] } = options
+  const { extraireSecrets = false, nomProjet = '', secretsInclus = [], secretsExclus = [] } = options
   const optsSecret = { inclusions: secretsInclus, exclusions: secretsExclus }
 
   if (!services || services.length === 0) {
@@ -443,6 +510,12 @@ export function buildDockerCompose(services, options = {}) {
     }
 
     const security = service.security || {}
+    if (security.user && security.user.trim() !== '') {
+      lines.push(`    user: ${yamlValue(security.user.trim())}`)
+    }
+    if (security.init) {
+      lines.push('    init: true')
+    }
     if (security.readOnly) {
       lines.push('    read_only: true')
     }
@@ -460,6 +533,26 @@ export function buildDockerCompose(services, options = {}) {
     if (security.noNewPrivileges) {
       lines.push('    security_opt:')
       lines.push('      - no-new-privileges:true')
+    }
+
+    if (service.stopGracePeriod && service.stopGracePeriod.trim() !== '') {
+      lines.push(`    stop_grace_period: ${service.stopGracePeriod.trim()}`)
+    }
+
+    const hotesSupplementaires = (service.extraHosts || []).filter((h) => h && h.trim() !== '')
+    if (hotesSupplementaires.length > 0) {
+      lines.push('    extra_hosts:')
+      for (const h of hotesSupplementaires) {
+        lines.push(`      - ${yamlValue(h.trim())}`)
+      }
+    }
+
+    const montagesTmpfs = (service.tmpfs || []).filter((t) => t && t.trim() !== '')
+    if (montagesTmpfs.length > 0) {
+      lines.push('    tmpfs:')
+      for (const t of montagesTmpfs) {
+        lines.push(`      - ${t.trim()}`)
+      }
     }
 
     if (service.networks && service.networks.length > 0) {
@@ -606,12 +699,26 @@ export function buildDockerRunScript(services, options = {}) {
     }
     if (service.logMaxFile && service.logMaxFile.trim() !== '') parts.push(`--log-opt max-file=${shValue(String(service.logMaxFile))}`)
     const securiteRun = service.security || {}
+    if (securiteRun.user && securiteRun.user.trim() !== '') parts.push(`--user ${shValue(securiteRun.user.trim())}`)
+    if (securiteRun.init) parts.push('--init')
     if (securiteRun.readOnly) parts.push('--read-only')
     if (securiteRun.dropAllCaps) parts.push('--cap-drop ALL')
     for (const c of (securiteRun.capAdd || []).filter((c) => c && c.trim() !== '')) {
       parts.push(`--cap-add ${c.trim().toUpperCase()}`)
     }
     if (securiteRun.noNewPrivileges) parts.push('--security-opt no-new-privileges:true')
+    // --stop-timeout attend un nombre entier de secondes ; on ne convertit
+    // que le format simple "30s"/"30", les autres unités (m, h) n'ont pas
+    // d'équivalent direct et sont ignorées ici (le YAML reste correct).
+    if (service.stopGracePeriod && /^\d+s?$/.test(service.stopGracePeriod.trim())) {
+      parts.push(`--stop-timeout ${parseInt(service.stopGracePeriod, 10)}`)
+    }
+    for (const h of (service.extraHosts || []).filter((h) => h && h.trim() !== '')) {
+      parts.push(`--add-host ${shValue(h.trim())}`)
+    }
+    for (const t of (service.tmpfs || []).filter((t) => t && t.trim() !== '')) {
+      parts.push(`--tmpfs ${shValue(t.trim())}`)
+    }
     parts.push(shValue(service.image || 'nginx:latest'))
 
     lignes.push(parts.join(' \\\n  '))
@@ -752,6 +859,26 @@ export function validerServices(services, options = {}) {
       avertissements.push(
         `Le service "${label}" utilise explicitement le tag "latest" — pratique pour tester, mais déconseillé en production car la version peut changer sans prévenir.`
       )
+    }
+
+    const hotesInvalides = (service.extraHosts || []).filter(
+      (h) => h && h.trim() !== '' && !/^[^:\s]+:\S+$/.test(h.trim())
+    )
+    if (hotesInvalides.length > 0) {
+      avertissements.push(
+        `Le service "${label}" a un hôte supplémentaire mal formé (${hotesInvalides.join(', ')}) — le format attendu est "nom-hote:adresse-ip" (ex: "host.docker.internal:172.17.0.1").`
+      )
+    }
+
+    const security = service.security || {}
+    if (security.readOnly) {
+      const aUnVolume = (service.volumes || []).some((v) => v && v.trim() !== '')
+      const aUnTmpfs = (service.tmpfs || []).some((t) => t && t.trim() !== '')
+      if (!aUnVolume && !aUnTmpfs) {
+        avertissements.push(
+          `Le service "${label}" a le système de fichiers en lecture seule (read_only) mais aucun volume ni dossier en mémoire (tmpfs) — l'appli risque de planter si elle a besoin d'écrire (cache, fichiers temporaires...).`
+        )
+      }
     }
   })
 

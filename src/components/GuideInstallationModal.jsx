@@ -1,23 +1,37 @@
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { siApple, siLinux, siUbuntu, siDebian, siFedora, siArchlinux, siOpensuse, siAlpinelinux, siRaspberrypi, siDocker } from 'simple-icons'
 import Icon from './Icon.jsx'
 
 // Modale : installation complète de Docker (Windows / macOS / Linux)
 function GuideInstallationModal({ ouvert, onFermer }) {
   const [os, setOs] = useState('windows')
+  const fermerRef = useRef(null)
+
+  useEffect(() => {
+    if (ouvert) {
+      const id = setTimeout(() => fermerRef.current?.focus(), 10)
+      return () => clearTimeout(id)
+    }
+  }, [ouvert])
 
   if (!ouvert) return null
 
   return (
-    <div className="guide-fond" onClick={onFermer}>
-      <div className="guide-panneau" onClick={(e) => e.stopPropagation()}>
+    <div className="guide-fond" onClick={onFermer} role="presentation">
+      <div
+        className="guide-panneau"
+        onClick={(e) => e.stopPropagation()}
+        role="dialog"
+        aria-modal="true"
+        aria-label="Installer Docker"
+      >
         <div className="guide-entete">
           <div className="guide-onglets">
             <button className={`guide-onglet ${os === 'windows' ? 'guide-onglet-actif' : ''}`} onClick={() => setOs('windows')}>🪟 Windows</button>
             <button className={`guide-onglet ${os === 'mac' ? 'guide-onglet-actif' : ''}`} onClick={() => setOs('mac')}><Icon icon={siApple} couleur="currentColor" /> macOS</button>
             <button className={`guide-onglet ${os === 'linux' ? 'guide-onglet-actif' : ''}`} onClick={() => setOs('linux')}><Icon icon={siLinux} couleur="currentColor" /> Linux</button>
           </div>
-          <button className="btn-icone guide-fermer" onClick={onFermer}>✕</button>
+          <button ref={fermerRef} className="btn-icone guide-fermer" onClick={onFermer} aria-label="Fermer">✕</button>
         </div>
 
         <div className="guide-contenu">

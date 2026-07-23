@@ -28,7 +28,10 @@ const serviceVide = () => ({
   logMaxSize: '',
   logMaxFile: '',
   traefik: { active: false, domaine: '', port: '' },
-  security: { readOnly: false, noNewPrivileges: false, dropAllCaps: false, capAdd: '' },
+  security: { readOnly: false, noNewPrivileges: false, dropAllCaps: false, capAdd: '', user: '', init: false },
+  stopGracePeriod: '',
+  extraHosts: [''],
+  tmpfs: [''],
 })
 
 // Formulaire d'ajout/édition d'un service Docker — 3 niveaux de complexité :
@@ -60,7 +63,11 @@ function ServiceForm({ onAdd, servicesExistants, servicesActuels, networksDispon
           noNewPrivileges: !!securityBrut.noNewPrivileges,
           dropAllCaps: !!securityBrut.dropAllCaps,
           capAdd: Array.isArray(securityBrut.capAdd) ? securityBrut.capAdd.join(', ') : (securityBrut.capAdd || ''),
+          user: securityBrut.user || '',
+          init: !!securityBrut.init,
         },
+        extraHosts: (serviceAEditer.extraHosts && serviceAEditer.extraHosts.length > 0) ? serviceAEditer.extraHosts : [''],
+        tmpfs: (serviceAEditer.tmpfs && serviceAEditer.tmpfs.length > 0) ? serviceAEditer.tmpfs : [''],
       })
       setPortsAuto(false)
       if ((serviceAEditer.volumes || []).some((v) => v && v.trim() !== '') ||
@@ -91,7 +98,7 @@ function ServiceForm({ onAdd, servicesExistants, servicesActuels, networksDispon
   function majSecurity(champ, valeur) {
     setService((s) => ({
       ...s,
-      security: { readOnly: false, noNewPrivileges: false, dropAllCaps: false, capAdd: '', ...s.security, [champ]: valeur },
+      security: { readOnly: false, noNewPrivileges: false, dropAllCaps: false, capAdd: '', user: '', init: false, ...s.security, [champ]: valeur },
     }))
   }
 
@@ -170,6 +177,34 @@ function ServiceForm({ onAdd, servicesExistants, servicesActuels, networksDispon
     setService((s) => ({ ...s, volumes: s.volumes.filter((_, i) => i !== index) }))
   }
 
+  function majExtraHost(index, valeur) {
+    const extraHosts = [...(service.extraHosts || [''])]
+    extraHosts[index] = valeur
+    setService((s) => ({ ...s, extraHosts }))
+  }
+
+  function ajouterExtraHost() {
+    setService((s) => ({ ...s, extraHosts: [...(s.extraHosts || ['']), ''] }))
+  }
+
+  function supprimerExtraHost(index) {
+    setService((s) => ({ ...s, extraHosts: (s.extraHosts || ['']).filter((_, i) => i !== index) }))
+  }
+
+  function majTmpfs(index, valeur) {
+    const tmpfs = [...(service.tmpfs || [''])]
+    tmpfs[index] = valeur
+    setService((s) => ({ ...s, tmpfs }))
+  }
+
+  function ajouterTmpfs() {
+    setService((s) => ({ ...s, tmpfs: [...(s.tmpfs || ['']), ''] }))
+  }
+
+  function supprimerTmpfs(index) {
+    setService((s) => ({ ...s, tmpfs: (s.tmpfs || ['']).filter((_, i) => i !== index) }))
+  }
+
   function majEnv(index, cle, valeur) {
     const env = [...service.env]
     env[index] = { ...env[index], [cle]: valeur }
@@ -217,6 +252,8 @@ function ServiceForm({ onAdd, servicesExistants, servicesActuels, networksDispon
           .map((c) => c.trim())
           .filter(Boolean),
       },
+      extraHosts: (service.extraHosts || []).filter((h) => h && h.trim() !== ''),
+      tmpfs: (service.tmpfs || []).filter((t) => t && t.trim() !== ''),
     }
     if (enEdition) {
       onUpdate(aEnvoyer)
@@ -381,7 +418,7 @@ function ServiceForm({ onAdd, servicesExistants, servicesActuels, networksDispon
       )}
 
       <button type="button" className="btn-discret btn-avance" onClick={() => setOuvertAvance((o) => !o)}>
-        {ouvertAvance ? '▾' : '▸'} Options avancées (redémarrage, dépendances, réseaux, profils, santé, ressources)
+        {ouvertAvance ? '▾' : '▸'} Options avancées (redémarrage, dépendances, réseaux, profils, santé, ressources, sécurité)
       </button>
 
       {ouvertAvance && (
@@ -398,6 +435,17 @@ function ServiceForm({ onAdd, servicesExistants, servicesActuels, networksDispon
                 <option key={p.valeur} value={p.valeur}>{p.label}</option>
               ))}
             </select>
+
+            <label className="label-avec-aide" style={{ marginTop: '0.6rem', display: 'block' }}>
+              Délai d'arrêt propre (stop_grace_period)
+              <Aide texte="Temps laissé au conteneur pour s'arrêter proprement (terminer ses requêtes en cours, fermer sa connexion à la base...) avant que Docker ne le tue de force. Utile pour les services qui ont besoin de quelques secondes pour fermer proprement. Format : ex. 30s, 1m." />
+            </label>
+            <input
+              type="text"
+              placeholder="ex: 30s (par défaut : 10s)"
+              value={service.stopGracePeriod || ''}
+              onChange={(e) => majChamp('stopGracePeriod', e.target.value)}
+            />
 
             {servicesExistants.length > 0 && (
               <>
@@ -607,6 +655,25 @@ function ServiceForm({ onAdd, servicesExistants, servicesActuels, networksDispon
                 <Aide texte="Réduit ce que le conteneur peut faire, même s'il est compromis : moins de capacités Linux, pas d'écriture sur le système de fichiers, pas d'élévation de privilèges. Recommandé pour tout service exposé, surtout via Traefik." />
               </span>
             </legend>
+            <label className="label-avec-aide" style={{ display: 'block' }}>
+              Utilisateur (UID:GID)
+              <Aide texte="Force le conteneur à tourner avec un utilisateur non-root, même si l'image ne le fait pas par défaut. Réduit fortement l'impact d'une éventuelle faille dans l'application. Exemple : 1000:1000. Laisse vide pour garder le comportement par défaut de l'image." />
+            </label>
+            <input
+              type="text"
+              placeholder="ex: 1000:1000 (vide = défaut de l'image)"
+              value={service.security?.user || ''}
+              onChange={(e) => majSecurity('user', e.target.value)}
+              style={{ marginBottom: '0.6rem' }}
+            />
+            <label className="option-secrets">
+              <input
+                type="checkbox"
+                checked={!!service.security?.init}
+                onChange={(e) => majSecurity('init', e.target.checked)}
+              />
+              Utiliser un init-process (tini) pour nettoyer les processus zombies
+            </label>
             <label className="option-secrets">
               <input
                 type="checkbox"
@@ -641,10 +708,49 @@ function ServiceForm({ onAdd, servicesExistants, servicesActuels, networksDispon
               />
             )}
             {service.security?.readOnly && (
-              <p className="reseaux-aide" style={{ marginTop: '0.5rem', marginBottom: 0 }}>
-                Pense à monter en volume tout dossier où l'appli a besoin d'écrire (cache, uploads...), sinon elle risque de planter au démarrage.
-              </p>
+              <div style={{ marginTop: '0.6rem' }}>
+                <p className="reseaux-aide" style={{ marginBottom: '0.4rem' }}>
+                  Le système de fichiers est en lecture seule : ajoute ici les dossiers où l'appli a quand même besoin d'écrire (cache, fichiers temporaires...). Ils seront montés en mémoire (perdus au redémarrage), sans quoi l'appli risque de planter au démarrage.
+                </p>
+                {(service.tmpfs || ['']).map((t, i) => (
+                  <div className="ligne-champ" key={i}>
+                    <input
+                      type="text"
+                      placeholder="ex: /tmp ou /var/cache/nginx"
+                      value={t}
+                      onChange={(e) => majTmpfs(i, e.target.value)}
+                    />
+                    {(service.tmpfs || ['']).length > 1 && (
+                      <button type="button" className="btn-icone" onClick={() => supprimerTmpfs(i)}>✕</button>
+                    )}
+                  </div>
+                ))}
+                <button type="button" className="btn-discret" onClick={ajouterTmpfs}>+ Ajouter un dossier en mémoire</button>
+              </div>
             )}
+          </fieldset>
+
+          <fieldset>
+            <legend>
+              <span className="label-avec-aide">
+                Hôtes supplémentaires (extra_hosts)
+                <Aide texte="Ajoute des entrées à la résolution DNS interne du conteneur, comme /etc/hosts. Utile pour faire pointer un nom de domaine vers une IP locale (ex: un service qui tourne sur la machine hôte). Format : nom-hote:adresse-ip." />
+              </span>
+            </legend>
+            {(service.extraHosts || ['']).map((h, i) => (
+              <div className="ligne-champ" key={i}>
+                <input
+                  type="text"
+                  placeholder="ex: host.docker.internal:172.17.0.1"
+                  value={h}
+                  onChange={(e) => majExtraHost(i, e.target.value)}
+                />
+                {(service.extraHosts || ['']).length > 1 && (
+                  <button type="button" className="btn-icone" onClick={() => supprimerExtraHost(i)}>✕</button>
+                )}
+              </div>
+            ))}
+            <button type="button" className="btn-discret" onClick={ajouterExtraHost}>+ Ajouter un hôte</button>
           </fieldset>
         </>
       )}

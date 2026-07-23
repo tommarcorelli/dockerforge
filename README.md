@@ -106,10 +106,17 @@ dockerforge/
   seule (`read_only`), interdiction de l'élévation de privilèges
   (`security_opt: no-new-privileges:true`), suppression de toutes les
   capacités Linux par défaut (`cap_drop: ALL`) avec possibilité d'en
-  rendre certaines explicitement (`cap_add`). Généré dans le YAML, le
-  script `docker run` équivalent (`--read-only`, `--cap-drop`, `--cap-add`,
-  `--security-opt`) et le manifeste Kubernetes (`securityContext`) ; relu
-  correctement à l'import d'un compose existant.
+  rendre certaines explicitement (`cap_add`), exécution sous un utilisateur
+  non-root (`user: UID:GID`), init-process anti-zombies (`init: true`),
+  délai d'arrêt propre (`stop_grace_period`) et hôtes DNS supplémentaires
+  (`extra_hosts`). Généré dans le YAML, le script `docker run` équivalent
+  (`--read-only`, `--cap-drop`, `--cap-add`, `--security-opt`, `--user`,
+  `--init`, `--stop-timeout`, `--add-host`, `--tmpfs`) et le manifeste
+  Kubernetes (`securityContext.runAsUser/runAsGroup`,
+  `terminationGracePeriodSeconds`, `hostAliases`, volumes `emptyDir` en
+  mémoire pour `tmpfs`) ; relu correctement à l'import d'un compose
+  existant. Quand la lecture seule est activée, le formulaire propose
+  directement d'ajouter les dossiers à monter en mémoire (`tmpfs`).
 - **Rotation des logs (nouveau)** : taille max par fichier et nombre de
   fichiers conservés (driver `json-file`), pour éviter qu'un conteneur qui
   tourne longtemps ne remplisse le disque avec ses logs. Génère le bloc
@@ -253,6 +260,31 @@ Correctifs récents._
 
 ## Correctifs récents
 
+- **Audit d'accessibilité des fenêtres modales** : les 3 modales qui
+  n'avaient ni sémantique ARIA ni focus géré (raccourcis clavier, guide
+  d'utilisation, guide d'installation) sont alignées sur le standard déjà
+  utilisé par la palette de commandes (`role="dialog"`, `aria-modal`,
+  focus posé à l'ouverture, `aria-label` sur les boutons ✕). Suppression
+  au passage d'un fichier de composant mort (`GuideModal.jsx`, jamais
+  importé) trouvé pendant l'audit. Corrections aussi côté durcissement
+  des conteneurs : adresse IPv6 tronquée dans `extra_hosts` → `hostAliases`
+  (Kubernetes), deux avertissements manquants (`extra_hosts` mal formé,
+  `read_only` sans volume ni `tmpfs`), et une variable morte supprimée.
+  **+3 tests** (117 au total).
+- **Support `tmpfs`** : complète le mode lecture seule — quand `read_only`
+  est activé, le formulaire propose directement d'ajouter les dossiers à
+  monter en mémoire (ex: `/tmp`, `/var/cache/nginx`), pour que l'appli
+  puisse encore écrire ce dont elle a besoin sans casser le durcissement.
+  Traduit en `tmpfs:` dans le compose, `--tmpfs` dans le script `docker
+  run`, et en volumes `emptyDir (medium: Memory)` + `volumeMounts` côté
+  Kubernetes. Relu à l'import, liste ou chaîne unique.
+- **Durcissement du conteneur, étendu** : exécution sous utilisateur
+  non-root (`user: UID:GID`), init-process anti-zombies (`init: true`),
+  délai d'arrêt propre (`stop_grace_period`) et hôtes DNS supplémentaires
+  (`extra_hosts`) — vient compléter `read_only`/`cap_drop`/`cap_add`/
+  `no-new-privileges`. Traduit aussi côté Kubernetes (`runAsUser`,
+  `runAsGroup`, `terminationGracePeriodSeconds`, `hostAliases`) et dans le
+  script `docker run` (`--user`, `--init`, `--stop-timeout`, `--add-host`).
 - **Durcissement du conteneur** : nouvelle section dans « Options avancées »
   — lecture seule (`read_only`), `no-new-privileges`, `cap_drop: ALL` +
   `cap_add` personnalisé. Généré dans le YAML, le script `docker run` et le

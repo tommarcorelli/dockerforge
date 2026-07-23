@@ -273,4 +273,74 @@ Résumé de tout ce qui a été ajouté/corrigé, dans l'ordre.
   réutilisant la même zone d'erreurs déjà affichée pour les autres échecs
   d'import.
 
+- **Durcissement du conteneur** : nouvelle section « Durcissement du
+  conteneur » dans les options avancées de chaque service — système de
+  fichiers en lecture seule (`read_only`), interdiction de l'élévation de
+  privilèges (`security_opt: no-new-privileges:true`), suppression de
+  toutes les capacités Linux par défaut (`cap_drop: ALL`) avec possibilité
+  d'en rendre certaines explicitement (`cap_add`). Généré dans le
+  `docker-compose.yml`, le script `docker run` équivalent (`--read-only`,
+  `--cap-drop`, `--cap-add`, `--security-opt`) et le manifeste Kubernetes
+  (`securityContext`) ; relu correctement à l'import d'un compose existant.
+- **Score de sécurité chiffré** : le mini-audit sécurité de l'aperçu
+  affiche désormais un score sur 100 (anneau visuel à côté du badge
+  Bon/À surveiller/À améliorer), calculé à partir des mêmes constats (mots
+  de passe faibles, secrets en clair, tags non figés, healthchecks
+  manquants). Nouvelle ligne dans l'audit comptant les conteneurs durcis.
+- **Annuler/Rétablir multi-niveaux** : `Ctrl+Z` / `Ctrl+Maj+Z` (ou
+  `Ctrl+Y`) annule/rétablit jusqu'à 50 actions du projet actif (édition,
+  duplication, réordonnancement, chargement de stack/modèle, réseaux,
+  import) — complète le toast d'annulation ponctuelle existant (qui reste
+  dédié à une seule action, quelques secondes). Boutons avec compteur dans
+  l'en-tête, entrées dans la palette de commandes, raccourcis listés dans
+  l'aide-mémoire clavier ; réinitialisé à chaque changement de projet.
+- **+11 tests** pour le durcissement (compose/run/k8s + round-trip import)
+  et le score de sécurité (106 au total).
+
+- **Durcissement du conteneur, étendu** : exécution sous utilisateur
+  non-root (`user: UID:GID`), init-process anti-zombies (`init: true`),
+  délai d'arrêt propre (`stop_grace_period`) et hôtes DNS supplémentaires
+  (`extra_hosts`) — vient compléter `read_only`/`cap_drop`/`cap_add`/
+  `no-new-privileges`. Traduit aussi côté Kubernetes (`runAsUser`,
+  `runAsGroup`, `terminationGracePeriodSeconds`, `hostAliases`) et dans le
+  script `docker run` (`--user`, `--init`, `--stop-timeout`, `--add-host`).
+- **+4 tests** pour ces champs (110 au total).
+
+- **Support `tmpfs`** : complète le mode lecture seule — quand `read_only`
+  est activé, le formulaire propose directement d'ajouter les dossiers à
+  monter en mémoire (ex: `/tmp`, `/var/cache/nginx`), pour que l'appli
+  puisse encore écrire ce dont elle a besoin sans casser le durcissement.
+  Traduit en `tmpfs:` dans le compose, `--tmpfs` dans le script `docker
+  run`, et en volumes `emptyDir (medium: Memory)` + `volumeMounts` côté
+  Kubernetes. Relu à l'import, liste ou chaîne unique.
+- **+4 tests** pour `tmpfs` (114 au total).
+
+- **Audit de cohérence complet** (durcissement + historique) : correction
+  d'un bug d'adresse IPv6 dans `extra_hosts` → `hostAliases` (un
+  `split(':')` naïf tronquait une IPv6 comme `fe80::1`, désormais on ne
+  coupe qu'au premier `:`), ajout de deux avertissements manquants
+  (`extra_hosts` mal formé sans `nom:ip` ; `read_only` actif sans le
+  moindre volume ni `tmpfs` pour compenser), suppression d'une variable
+  `networks` déclarée mais jamais utilisée dans `buildDockerCompose`
+  (le code lisait déjà `options.networks` directement), et le libellé du
+  bouton « Options avancées » mentionne maintenant explicitement la
+  sécurité pour que la section soit plus facile à trouver.
+- **+3 tests** pour ces avertissements et le correctif IPv6 (117 au total).
+- **Audit d'accessibilité des fenêtres modales** : `CommandPalette` avait
+  déjà `role="dialog"`, `aria-modal` et le focus posé automatiquement à
+  l'ouverture — les trois autres modales (raccourcis clavier, guide
+  d'utilisation, guide d'installation) n'avaient ni l'un ni l'autre.
+  Alignées sur le même standard : `role="dialog"` + `aria-modal="true"` +
+  `aria-labelledby`/`aria-label`, focus posé sur le bouton fermer à
+  l'ouverture, `aria-label="Fermer"` sur les boutons ✕ (icône seule,
+  jusque-là sans texte accessible). L'anneau de focus visible existant
+  (`button:focus-visible`) s'applique automatiquement, rien à ajouter
+  côté CSS.
+- **Suppression de code mort** : `GuideModal.jsx` (version combinée à
+  onglets du guide, jamais importée nulle part — remplacée depuis par les
+  deux fichiers séparés `GuideUtilisationModal.jsx` et
+  `GuideInstallationModal.jsx` réellement utilisés) a été supprimée après
+  vérification qu'aucune référence n'y pointait.
+
+
 

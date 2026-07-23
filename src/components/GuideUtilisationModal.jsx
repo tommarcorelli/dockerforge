@@ -1,13 +1,30 @@
+import { useEffect, useRef } from 'react'
+
 // Modale : mode d'emploi de DockerForge
 function GuideUtilisationModal({ ouvert, onFermer }) {
+  const fermerRef = useRef(null)
+
+  useEffect(() => {
+    if (ouvert) {
+      const id = setTimeout(() => fermerRef.current?.focus(), 10)
+      return () => clearTimeout(id)
+    }
+  }, [ouvert])
+
   if (!ouvert) return null
 
   return (
-    <div className="guide-fond" onClick={onFermer}>
-      <div className="guide-panneau" onClick={(e) => e.stopPropagation()}>
+    <div className="guide-fond" onClick={onFermer} role="presentation">
+      <div
+        className="guide-panneau"
+        onClick={(e) => e.stopPropagation()}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="titre-guide-utilisation"
+      >
         <div className="guide-entete guide-entete-simple">
-          <h2 className="guide-titre">Utiliser DockerForge</h2>
-          <button className="btn-icone guide-fermer" onClick={onFermer}>✕</button>
+          <h2 className="guide-titre" id="titre-guide-utilisation">Utiliser DockerForge</h2>
+          <button ref={fermerRef} className="btn-icone guide-fermer" onClick={onFermer} aria-label="Fermer">✕</button>
         </div>
 
         <div className="guide-contenu">
