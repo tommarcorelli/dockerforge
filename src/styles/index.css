@@ -660,6 +660,22 @@ button:active { transform: scale(0.97); }
 .btn-etoile-actif {
   color: var(--gold);
 }
+.btn-stacks-plus {
+  display: block;
+  margin: 0.9rem auto 0;
+  padding: 0.6rem 1.1rem;
+  border: 1.5px solid var(--line-strong);
+  border-radius: 999px;
+  background: var(--panel);
+  color: var(--ink-2);
+  font-size: 0.85rem;
+  font-weight: 600;
+  transition: border-color 0.2s ease, color 0.2s ease;
+}
+.btn-stacks-plus:hover {
+  border-color: var(--forge);
+  color: var(--forge-2);
+}
 .chip-categorie-favori {
   border-color: var(--gold);
   color: var(--gold);

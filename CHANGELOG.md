@@ -31,6 +31,12 @@ Résumé de tout ce qui a été ajouté/corrigé, dans l'ordre.
 
 ## Correctifs récents
 
+- **Pagination des stacks presets** : `StackPresets` n'affiche plus les 96
+  stacks d'un coup à l'arrivée sur le site. Seules 12 sont visibles par
+  défaut, avec un bouton « Afficher X stacks de plus » qui en révèle 24
+  à chaque clic (et « Réduire » pour revenir à la vue courte). La limite
+  se réinitialise automatiquement dès qu'on change la recherche ou un
+  filtre, pour ne jamais cacher un résultat pertinent derrière un « plus ».
 - **Passe de design général** : la police d'affichage passe de Manrope à
   **Big Shoulders Display** (condensée, industrielle — clin d'œil direct
   au thème « forge »), tracking retouché sur les titres pour rester

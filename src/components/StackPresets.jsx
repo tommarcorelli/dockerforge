@@ -1,8 +1,14 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { STACKS, CATEGORIE_LABELS, categorieDe } from '../core/stacks.js'
 import { chargerFavoris, basculerFavori } from '../core/favoris.js'
 import { trouverIcone } from '../core/catalogue.js'
 import Icon from './Icon.jsx'
+
+// Nombre de cartes affichées par défaut avant le bouton "Afficher plus".
+// Avec ~96 stacks, tout afficher d'un coup rend la page sans fin dès
+// l'arrivée sur le site — on ne montre qu'un premier lot, quitte à
+// laisser la recherche/les filtres réduire déjà la liste avant ça.
+const LOT_INITIAL = 12
 
 // Dérivé de CATEGORIE_LABELS (source unique de vérité, définie dans
 // stacks.js) plutôt que recopié à la main ici : sans ça, ajouter une
@@ -21,6 +27,7 @@ function StackPresets({ onCharger }) {
   const [nouveautesSeulement, setNouveautesSeulement] = useState(false)
   const [favorisSeulement, setFavorisSeulement] = useState(false)
   const [favoris, setFavoris] = useState(() => chargerFavoris())
+  const [limite, setLimite] = useState(LOT_INITIAL)
 
   const nbNouveautes = useMemo(() => STACKS.filter((s) => s.nouveau).length, [])
 
@@ -56,6 +63,17 @@ function StackPresets({ onCharger }) {
       return favB - favA
     })
   }, [stacksFiltrees, favoris])
+
+  // On revient au premier lot dès qu'un filtre change, plutôt que de
+  // garder une limite héritée de la recherche précédente (sinon on
+  // pourrait se retrouver avec 0 résultat affiché après un filtre plus
+  // restrictif, alors que des stacks correspondent bien).
+  useEffect(() => {
+    setLimite(LOT_INITIAL)
+  }, [recherche, categorie, nouveautesSeulement, favorisSeulement])
+
+  const stacksVisibles = useMemo(() => stacksAffichees.slice(0, limite), [stacksAffichees, limite])
+  const resteACharger = stacksAffichees.length - stacksVisibles.length
 
   return (
     <div className="stacks">
@@ -118,42 +136,55 @@ function StackPresets({ onCharger }) {
       {stacksAffichees.length === 0 ? (
         <p className="liste-vide">Aucune stack ne correspond à "{recherche}".</p>
       ) : (
-        <div className="stacks-liste">
-          {stacksAffichees.map((stack) => {
-            const estFavori = favoris.includes(stack.id)
-            const icones = [...new Set(stack.services.map((sv) => trouverIcone(sv.image)).filter(Boolean))].slice(0, 5)
-            return (
-              <div className="stack-carte-conteneur" key={stack.id}>
-                <button className="stack-carte" onClick={() => onCharger(stack)}>
-                  <span className="stack-nom">
-                    {stack.nom}
-                    {stack.nouveau && <span className="badge-nouveau">Nouveau</span>}
-                  </span>
-                  <span className="stack-description">{stack.description}</span>
-                  {icones.length > 0 && (
-                    <span className="stack-icones">
-                      {icones.map((icone, i) => (
-                        <Icon key={i} icon={icone} size={16} />
-                      ))}
+        <>
+          <div className="stacks-liste">
+            {stacksVisibles.map((stack) => {
+              const estFavori = favoris.includes(stack.id)
+              const icones = [...new Set(stack.services.map((sv) => trouverIcone(sv.image)).filter(Boolean))].slice(0, 5)
+              return (
+                <div className="stack-carte-conteneur" key={stack.id}>
+                  <button className="stack-carte" onClick={() => onCharger(stack)}>
+                    <span className="stack-nom">
+                      {stack.nom}
+                      {stack.nouveau && <span className="badge-nouveau">Nouveau</span>}
                     </span>
-                  )}
-                  <span className="stack-nb-services">
-                    {stack.services.length} conteneur{stack.services.length > 1 ? 's' : ''}
-                  </span>
-                </button>
-                <button
-                  type="button"
-                  className={`btn-etoile ${estFavori ? 'btn-etoile-actif' : ''}`}
-                  onClick={(e) => toggleFavori(e, stack.id)}
-                  title={estFavori ? 'Retirer des favoris' : 'Ajouter aux favoris'}
-                  aria-label={estFavori ? 'Retirer des favoris' : 'Ajouter aux favoris'}
-                >
-                  {estFavori ? '★' : '☆'}
-                </button>
-              </div>
-            )
-          })}
-        </div>
+                    <span className="stack-description">{stack.description}</span>
+                    {icones.length > 0 && (
+                      <span className="stack-icones">
+                        {icones.map((icone, i) => (
+                          <Icon key={i} icon={icone} size={16} />
+                        ))}
+                      </span>
+                    )}
+                    <span className="stack-nb-services">
+                      {stack.services.length} conteneur{stack.services.length > 1 ? 's' : ''}
+                    </span>
+                  </button>
+                  <button
+                    type="button"
+                    className={`btn-etoile ${estFavori ? 'btn-etoile-actif' : ''}`}
+                    onClick={(e) => toggleFavori(e, stack.id)}
+                    title={estFavori ? 'Retirer des favoris' : 'Ajouter aux favoris'}
+                    aria-label={estFavori ? 'Retirer des favoris' : 'Ajouter aux favoris'}
+                  >
+                    {estFavori ? '★' : '☆'}
+                  </button>
+                </div>
+              )
+            })}
+          </div>
+
+          {resteACharger > 0 && (
+            <button type="button" className="btn-discret btn-stacks-plus" onClick={() => setLimite((l) => l + 24)}>
+              Afficher {Math.min(resteACharger, 24)} stack{Math.min(resteACharger, 24) > 1 ? 's' : ''} de plus ({resteACharger} restante{resteACharger > 1 ? 's' : ''}) ↓
+            </button>
+          )}
+          {resteACharger === 0 && limite > LOT_INITIAL && stacksAffichees.length > LOT_INITIAL && (
+            <button type="button" className="btn-discret btn-stacks-plus" onClick={() => setLimite(LOT_INITIAL)}>
+              Réduire ↑
+            </button>
+          )}
+        </>
       )}
     </div>
   )
