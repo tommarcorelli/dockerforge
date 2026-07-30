@@ -1,5 +1,6 @@
 import { useState, useMemo } from 'react'
 import { STACKS, CATEGORIE_LABELS, categorieDe } from '../core/stacks.js'
+import { chargerFavoris, basculerFavori } from '../core/favoris.js'
 
 // Dérivé de CATEGORIE_LABELS (source unique de vérité, définie dans
 // stacks.js) plutôt que recopié à la main ici : sans ça, ajouter une
@@ -15,10 +16,22 @@ const CATEGORIES_ORDRE = Object.keys(CATEGORIE_LABELS)
 function StackPresets({ onCharger }) {
   const [recherche, setRecherche] = useState('')
   const [categorie, setCategorie] = useState('toutes')
+  const [nouveautesSeulement, setNouveautesSeulement] = useState(false)
+  const [favorisSeulement, setFavorisSeulement] = useState(false)
+  const [favoris, setFavoris] = useState(() => chargerFavoris())
+
+  const nbNouveautes = useMemo(() => STACKS.filter((s) => s.nouveau).length, [])
+
+  function toggleFavori(e, id) {
+    e.stopPropagation()
+    setFavoris(basculerFavori(id))
+  }
 
   const stacksFiltrees = useMemo(() => {
     const q = recherche.trim().toLowerCase()
     return STACKS.filter((s) => {
+      if (nouveautesSeulement && !s.nouveau) return false
+      if (favorisSeulement && !favoris.includes(s.id)) return false
       const correspondCategorie = categorie === 'toutes' || categorieDe(s) === categorie
       if (!correspondCategorie) return false
       if (!q) return true
@@ -28,7 +41,19 @@ function StackPresets({ onCharger }) {
         s.services.some((sv) => sv.image.toLowerCase().includes(q))
       )
     })
-  }, [recherche, categorie])
+  }, [recherche, categorie, nouveautesSeulement, favorisSeulement, favoris])
+
+  // Les favoris remontent en tête de liste (dans l'ordre où ils ont été
+  // ajoutés en favori n'a pas d'importance ici, seul le fait d'être favori
+  // compte) — un tri stable préserve sinon l'ordre naturel de STACKS.
+  const stacksAffichees = useMemo(() => {
+    if (favoris.length === 0) return stacksFiltrees
+    return [...stacksFiltrees].sort((a, b) => {
+      const favA = favoris.includes(a.id) ? 1 : 0
+      const favB = favoris.includes(b.id) ? 1 : 0
+      return favB - favA
+    })
+  }, [stacksFiltrees, favoris])
 
   return (
     <div className="stacks">
@@ -53,6 +78,26 @@ function StackPresets({ onCharger }) {
         >
           Toutes ({STACKS.length})
         </button>
+        {nbNouveautes > 0 && (
+          <button
+            type="button"
+            className={`chip-categorie chip-categorie-nouveau ${nouveautesSeulement ? 'chip-categorie-actif' : ''}`}
+            onClick={() => setNouveautesSeulement((v) => !v)}
+            title="N'afficher que les stacks ajoutées récemment"
+          >
+            ✨ Nouveautés ({nbNouveautes})
+          </button>
+        )}
+        {favoris.length > 0 && (
+          <button
+            type="button"
+            className={`chip-categorie chip-categorie-favori ${favorisSeulement ? 'chip-categorie-actif' : ''}`}
+            onClick={() => setFavorisSeulement((v) => !v)}
+            title="N'afficher que mes stacks favorites"
+          >
+            ★ Favoris ({favoris.length})
+          </button>
+        )}
         {CATEGORIES_ORDRE.map((c) => {
           const nb = STACKS.filter((s) => categorieDe(s) === c).length
           return (
@@ -68,16 +113,36 @@ function StackPresets({ onCharger }) {
         })}
       </div>
 
-      {stacksFiltrees.length === 0 ? (
+      {stacksAffichees.length === 0 ? (
         <p className="liste-vide">Aucune stack ne correspond à "{recherche}".</p>
       ) : (
         <div className="stacks-liste">
-          {stacksFiltrees.map((stack) => (
-            <button key={stack.id} className="stack-carte" onClick={() => onCharger(stack)}>
-              <span className="stack-nom">{stack.nom}</span>
-              <span className="stack-description">{stack.description}</span>
-            </button>
-          ))}
+          {stacksAffichees.map((stack) => {
+            const estFavori = favoris.includes(stack.id)
+            return (
+              <div className="stack-carte-conteneur" key={stack.id}>
+                <button className="stack-carte" onClick={() => onCharger(stack)}>
+                  <span className="stack-nom">
+                    {stack.nom}
+                    {stack.nouveau && <span className="badge-nouveau">Nouveau</span>}
+                  </span>
+                  <span className="stack-description">{stack.description}</span>
+                  <span className="stack-nb-services">
+                    {stack.services.length} conteneur{stack.services.length > 1 ? 's' : ''}
+                  </span>
+                </button>
+                <button
+                  type="button"
+                  className={`btn-etoile ${estFavori ? 'btn-etoile-actif' : ''}`}
+                  onClick={(e) => toggleFavori(e, stack.id)}
+                  title={estFavori ? 'Retirer des favoris' : 'Ajouter aux favoris'}
+                  aria-label={estFavori ? 'Retirer des favoris' : 'Ajouter aux favoris'}
+                >
+                  {estFavori ? '★' : '☆'}
+                </button>
+              </div>
+            )
+          })}
         </div>
       )}
     </div>

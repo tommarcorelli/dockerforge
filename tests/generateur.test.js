@@ -37,6 +37,7 @@ if (typeof globalThis.localStorage === 'undefined') {
 
 const { chargerModeles, ajouterModele, supprimerModele, instancierModele } = await import('../src/core/modeles.js')
 const { chargerProjets, sauvegarderProjets, exporterProjet, importerProjet, projetVide } = await import('../src/core/projets.js')
+const { chargerFavoris, basculerFavori } = await import('../src/core/favoris.js')
 
 let nbTests = 0
 let nbEchecs = 0
@@ -1091,6 +1092,40 @@ test('importerProjet rejette un JSON qui n\'est pas un projet DockerForge', () =
     leve = true
   }
   assert(leve, 'devrait lever une erreur sur un JSON invalide')
+})
+
+console.log('\n--- favoris.js ---')
+
+test('chargerFavoris renvoie une liste vide si rien n\'est stocké', () => {
+  localStorage.clear()
+  assert(Array.isArray(chargerFavoris()) && chargerFavoris().length === 0)
+})
+
+test('basculerFavori ajoute un id absent, puis le retire au second appel', () => {
+  localStorage.clear()
+  const apresAjout = basculerFavori('lamp')
+  assert(apresAjout.includes('lamp'), 'devrait contenir "lamp" après le premier appel')
+  assert(chargerFavoris().includes('lamp'), 'devrait être persisté')
+  const apresRetrait = basculerFavori('lamp')
+  assert(!apresRetrait.includes('lamp'), 'devrait avoir retiré "lamp" au second appel')
+  assert(!chargerFavoris().includes('lamp'))
+})
+
+test('basculerFavori gère plusieurs favoris indépendamment', () => {
+  localStorage.clear()
+  basculerFavori('lamp')
+  basculerFavori('wordpress')
+  const liste = chargerFavoris()
+  assert(liste.includes('lamp') && liste.includes('wordpress'), 'les deux favoris devraient coexister')
+  basculerFavori('lamp')
+  const apres = chargerFavoris()
+  assert(!apres.includes('lamp') && apres.includes('wordpress'), 'retirer un favori ne doit pas affecter les autres')
+})
+
+test('chargerFavoris renvoie une liste vide si le stockage est corrompu', () => {
+  localStorage.setItem('dockerforge_favoris_stacks', '{ceci n\'est pas du JSON valide')
+  assert(Array.isArray(chargerFavoris()) && chargerFavoris().length === 0)
+  localStorage.clear()
 })
 
 console.log('\n--- clipboard.js ---')

@@ -20,6 +20,7 @@ import {
   siGitea, siHomepage, siGrocy,
   siOllama,
   siAdguard, siActualbudget,
+  siRadarr, siSonarr, siQbittorrent, siForgejo, siListmonk, siAudiobookshelf,
 } from 'simple-icons'
 
 export const CATALOGUE = [
@@ -91,6 +92,12 @@ export const CATALOGUE = [
       { nom: 'Kibana', image: 'kibana:8.15.0', portDefaut: 5601, suggestionNom: 'kibana', envDefaut: [], icone: siKibana },
       { nom: 'Uptime Kuma', image: 'louislam/uptime-kuma:latest', portDefaut: 3001, suggestionNom: 'uptime-kuma', envDefaut: [], icone: siUptimekuma },
       { nom: 'Netdata', image: 'netdata/netdata:latest', portDefaut: 19999, suggestionNom: 'netdata', envDefaut: [], icone: siNetdata },
+      { nom: 'Dozzle (logs Docker)', image: 'amir20/dozzle:latest', portDefaut: 8081, suggestionNom: 'dozzle', envDefaut: [], icone: null },
+      { nom: 'Healthchecks (cron)', image: 'lscr.io/linuxserver/healthchecks:latest', portDefaut: 8000, suggestionNom: 'healthchecks', envDefaut: [
+        { key: 'SECRET_KEY', value: 'change_moi' },
+        { key: 'SUPERUSER_EMAIL', value: 'admin@example.com' },
+        { key: 'SUPERUSER_PASSWORD', value: 'change_moi' },
+      ], icone: null },
     ],
   },
   {
@@ -138,6 +145,12 @@ export const CATALOGUE = [
         { key: 'COLLECTIONS', value: 'crowdsecurity/nginx crowdsecurity/sshd' },
       ] },
       { nom: 'Gitea', image: 'gitea/gitea:latest', portDefaut: 3000, suggestionNom: 'gitea', envDefaut: [], icone: siGitea },
+      { nom: 'Forgejo', image: 'codeberg.org/forgejo/forgejo:latest', portDefaut: 3000, suggestionNom: 'forgejo', envDefaut: [
+        { key: 'USER_UID', value: '1000' }, { key: 'USER_GID', value: '1000' },
+      ], icone: siForgejo },
+      { nom: 'Snipe-IT (parc informatique)', image: 'snipe/snipe-it:latest', portDefaut: 8000, suggestionNom: 'snipe-it', envDefaut: [
+        { key: 'APP_KEY', value: 'change_moi' },
+      ], icone: null },
       { nom: 'Homepage (dashboard)', image: 'ghcr.io/gethomepage/homepage:latest', portDefaut: 3000, suggestionNom: 'homepage', envDefaut: [], icone: siHomepage },
       { nom: 'Grocy', image: 'linuxserver/grocy:latest', portDefaut: 80, suggestionNom: 'grocy', envDefaut: [], icone: siGrocy },
       { nom: 'Umami (analytics)', image: 'ghcr.io/umami-software/umami:postgresql-latest', portDefaut: 3000, suggestionNom: 'umami', envDefaut: [
@@ -237,6 +250,12 @@ export const CATALOGUE = [
         { key: 'database__client', value: 'mysql' },
         { key: 'database__connection__host', value: 'db' },
       ], icone: siGhost },
+      { nom: 'Gotify (notifications)', image: 'gotify/server:latest', portDefaut: 8070, suggestionNom: 'gotify', envDefaut: [
+        { key: 'GOTIFY_DEFAULTUSER_PASS', value: 'change_moi' },
+      ], icone: null },
+      { nom: 'Listmonk (newsletter)', image: 'listmonk/listmonk:latest', portDefaut: 9000, suggestionNom: 'listmonk', envDefaut: [
+        { key: 'LISTMONK_db__host', value: 'db' },
+      ], icone: siListmonk },
     ],
   },
   {
@@ -249,6 +268,7 @@ export const CATALOGUE = [
       { nom: 'Duplicati', image: 'duplicati/duplicati:latest', portDefaut: 8200, suggestionNom: 'duplicati', envDefaut: [], icone: siDuplicati },
       { nom: 'Syncthing', image: 'syncthing/syncthing:latest', portDefaut: 8384, suggestionNom: 'syncthing', envDefaut: [], icone: siSyncthing },
       { nom: 'Rclone (rcd)', image: 'rclone/rclone:latest', portDefaut: 5572, suggestionNom: 'rclone', envDefaut: [], icone: siRclone },
+      { nom: 'File Browser', image: 'filebrowser/filebrowser:latest', portDefaut: 8082, suggestionNom: 'filebrowser', envDefaut: [], icone: null },
     ],
   },
   {
@@ -320,6 +340,40 @@ export const CATALOGUE = [
       { nom: 'Ollama', image: 'ollama/ollama:latest', portDefaut: 11434, suggestionNom: 'ollama', envDefaut: [], icone: siOllama },
       { nom: 'Open WebUI', image: 'ghcr.io/open-webui/open-webui:main', portDefaut: 8080, suggestionNom: 'open-webui', envDefaut: [
         { key: 'OLLAMA_BASE_URL', value: 'http://ollama:11434' },
+      ], icone: null },
+    ],
+  },
+  {
+    categorie: 'Téléchargement & automatisation médias',
+    teinte: 'orange',
+    images: [
+      { nom: 'Radarr (films)', image: 'linuxserver/radarr:latest', portDefaut: 7878, suggestionNom: 'radarr', envDefaut: [
+        { key: 'PUID', value: '1000' }, { key: 'PGID', value: '1000' }, { key: 'TZ', value: 'Europe/Paris' },
+      ], icone: siRadarr },
+      { nom: 'Sonarr (séries)', image: 'linuxserver/sonarr:latest', portDefaut: 8989, suggestionNom: 'sonarr', envDefaut: [
+        { key: 'PUID', value: '1000' }, { key: 'PGID', value: '1000' }, { key: 'TZ', value: 'Europe/Paris' },
+      ], icone: siSonarr },
+      { nom: 'Prowlarr (indexeurs)', image: 'linuxserver/prowlarr:latest', portDefaut: 9696, suggestionNom: 'prowlarr', envDefaut: [
+        { key: 'PUID', value: '1000' }, { key: 'PGID', value: '1000' }, { key: 'TZ', value: 'Europe/Paris' },
+      ], icone: null },
+      { nom: 'qBittorrent', image: 'linuxserver/qbittorrent:latest', portDefaut: 8080, suggestionNom: 'qbittorrent', envDefaut: [
+        { key: 'PUID', value: '1000' }, { key: 'PGID', value: '1000' }, { key: 'TZ', value: 'Europe/Paris' },
+      ], icone: siQbittorrent },
+    ],
+  },
+  {
+    categorie: 'Médias personnels',
+    teinte: 'jaune',
+    images: [
+      { nom: 'Navidrome (musique)', image: 'deluan/navidrome:latest', portDefaut: 4533, suggestionNom: 'navidrome', envDefaut: [
+        { key: 'ND_LOGLEVEL', value: 'info' },
+      ], icone: null },
+      { nom: 'Audiobookshelf', image: 'ghcr.io/advplyr/audiobookshelf:latest', portDefaut: 13378, suggestionNom: 'audiobookshelf', envDefaut: [], icone: siAudiobookshelf },
+      { nom: 'PhotoPrism', image: 'photoprism/photoprism:latest', portDefaut: 2342, suggestionNom: 'photoprism', envDefaut: [
+        { key: 'PHOTOPRISM_ADMIN_PASSWORD', value: 'change_moi' },
+      ], icone: null },
+      { nom: 'Kavita (BD/mangas/ebooks)', image: 'linuxserver/kavita:latest', portDefaut: 5000, suggestionNom: 'kavita', envDefaut: [
+        { key: 'PUID', value: '1000' }, { key: 'PGID', value: '1000' }, { key: 'TZ', value: 'Europe/Paris' },
       ], icone: null },
     ],
   },

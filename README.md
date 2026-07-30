@@ -173,7 +173,7 @@ dockerforge/
   répartition des services par réseau.
 
 **Stacks & import**
-- **82 stacks prêtes à l'emploi**, filtrables par catégorie (Web & CMS,
+- **95 stacks prêtes à l'emploi**, filtrables par catégorie (Web & CMS,
   Données & dev, Réseau & sécurité, Monitoring & maintenance,
   Auto-hébergement perso, Communication & outils) en plus de la recherche
   texte libre :
@@ -310,6 +310,17 @@ Correctifs récents._
   personnel). Les 3 images correspondantes rejoignent aussi le catalogue
   (catégories Sécurité & annuaire, Productivité & documentation,
   Auto-hébergement).
+- **Vague 10 de stacks** (82 → 95) : Nginx Proxy Manager, stack *Arr
+  complète (Radarr + Sonarr + Prowlarr + qBittorrent), Navidrome,
+  Audiobookshelf, PhotoPrism, Kavita, File Browser, Listmonk, Gotify,
+  Healthchecks, Dozzle, Snipe-IT, Forgejo. 2 nouvelles catégories de
+  catalogue (Téléchargement & automatisation médias, Médias personnels).
+  Badge « Nouveau » + filtre « Nouveautés » sur les stacks récentes
+  (champ optionnel `nouveau: true`).
+- **Favoris de stacks** : bouton ★ sur chaque carte de la liste des
+  stacks, persisté en `localStorage` (nouveau module `favoris.js`),
+  filtre « ★ Favoris » et tri qui fait remonter les favoris en tête de
+  liste.
 - **Export SVG du schéma** : ajouté (et corrigé en cours de route — la
   première version avait la fonction `exporterSvg()` et la `ref` définies
   mais jamais reliées au bouton/au `<svg>`, donc inutilisables ; c'est

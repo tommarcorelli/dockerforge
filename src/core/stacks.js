@@ -42,6 +42,10 @@ export const CATEGORIE_PAR_STACK = {
   bookstack: 'outils', miniflux: 'outils', shlink: 'outils', glpi: 'outils',
   rocketchat: 'outils', discourse: 'outils', vikunja: 'outils',
   'adguard-home': 'reseau', 'actual-budget': 'perso',
+  'nginx-proxy-manager': 'reseau', 'arr-stack': 'perso', navidrome: 'perso',
+  audiobookshelf: 'perso', photoprism: 'perso', kavita: 'perso', filebrowser: 'perso',
+  listmonk: 'outils', gotify: 'outils', healthchecks: 'monitoring', dozzle: 'monitoring',
+  'snipe-it': 'outils', forgejo: 'dev',
 }
 
 export function categorieDe(stack) {
@@ -1633,6 +1637,262 @@ export const STACKS = [
         name: 'actual-budget', image: 'actualbudget/actual-server:latest', ports: [{ host: 5006, container: 5006 }],
         volumes: ['./actual-data:/data'],
         env: [], dependsOn: [],
+      },
+    ],
+  },
+  {
+    id: 'nginx-proxy-manager',
+    nom: 'Reverse proxy avec interface (Nginx Proxy Manager)',
+    description: 'Reverse proxy Nginx pilote par une interface web, certificats Lets Encrypt en un clic',
+    nouveau: true,
+    services: [
+      {
+        name: 'nginx-proxy-manager', image: 'jc21/nginx-proxy-manager:latest',
+        ports: [{ host: 80, container: 80 }, { host: 443, container: 443 }, { host: 81, container: 81 }],
+        volumes: ['./npm-data:/data', './npm-letsencrypt:/etc/letsencrypt'],
+        env: [], dependsOn: [],
+      },
+    ],
+  },
+  {
+    id: 'arr-stack',
+    nom: 'Automatisation medias (*Arr + qBittorrent)',
+    description: 'Radarr + Sonarr + Prowlarr + qBittorrent - recherche et recuperation automatisees de films/series',
+    nouveau: true,
+    services: [
+      {
+        name: 'qbittorrent', image: 'linuxserver/qbittorrent:latest',
+        ports: [{ host: 8080, container: 8080 }, { host: 6881, container: 6881 }],
+        volumes: ['./qbittorrent-config:/config', './downloads:/downloads'],
+        env: [{ key: 'PUID', value: '1000' }, { key: 'PGID', value: '1000' }, { key: 'TZ', value: 'Europe/Paris' }],
+        dependsOn: [],
+      },
+      {
+        name: 'prowlarr', image: 'linuxserver/prowlarr:latest',
+        ports: [{ host: 9696, container: 9696 }],
+        volumes: ['./prowlarr-config:/config'],
+        env: [{ key: 'PUID', value: '1000' }, { key: 'PGID', value: '1000' }, { key: 'TZ', value: 'Europe/Paris' }],
+        dependsOn: [],
+      },
+      {
+        name: 'radarr', image: 'linuxserver/radarr:latest',
+        ports: [{ host: 7878, container: 7878 }],
+        volumes: ['./radarr-config:/config', './media/films:/movies', './downloads:/downloads'],
+        env: [{ key: 'PUID', value: '1000' }, { key: 'PGID', value: '1000' }, { key: 'TZ', value: 'Europe/Paris' }],
+        dependsOn: ['qbittorrent', 'prowlarr'],
+      },
+      {
+        name: 'sonarr', image: 'linuxserver/sonarr:latest',
+        ports: [{ host: 8989, container: 8989 }],
+        volumes: ['./sonarr-config:/config', './media/series:/tv', './downloads:/downloads'],
+        env: [{ key: 'PUID', value: '1000' }, { key: 'PGID', value: '1000' }, { key: 'TZ', value: 'Europe/Paris' }],
+        dependsOn: ['qbittorrent', 'prowlarr'],
+      },
+    ],
+  },
+  {
+    id: 'navidrome',
+    nom: 'Streaming musical perso (Navidrome)',
+    description: 'Serveur de streaming musical compatible Subsonic, leger et rapide, pour ta propre bibliotheque',
+    nouveau: true,
+    services: [
+      {
+        name: 'navidrome', image: 'deluan/navidrome:latest',
+        ports: [{ host: 4533, container: 4533 }],
+        volumes: ['./navidrome-data:/data', './musique:/music:ro'],
+        env: [{ key: 'ND_LOGLEVEL', value: 'info' }],
+        dependsOn: [],
+      },
+    ],
+  },
+  {
+    id: 'audiobookshelf',
+    nom: 'Livres audio & podcasts (Audiobookshelf)',
+    description: 'Serveur de livres audio et podcasts auto-heberge, avec appli mobile dediee',
+    nouveau: true,
+    services: [
+      {
+        name: 'audiobookshelf', image: 'ghcr.io/advplyr/audiobookshelf:latest',
+        ports: [{ host: 13378, container: 80 }],
+        volumes: [
+          './audiobookshelf-config:/config',
+          './audiobookshelf-metadata:/metadata',
+          './audiobooks:/audiobooks',
+          './podcasts:/podcasts',
+        ],
+        env: [], dependsOn: [],
+      },
+    ],
+  },
+  {
+    id: 'photoprism',
+    nom: 'Photos avec IA (PhotoPrism)',
+    description: 'Galerie photo auto-hebergee avec reconnaissance d\'objets et de visages assistee par IA',
+    nouveau: true,
+    services: [
+      {
+        name: 'photoprism', image: 'photoprism/photoprism:latest',
+        ports: [{ host: 2342, container: 2342 }],
+        volumes: ['./photoprism-storage:/photoprism/storage', './photos:/photoprism/originals'],
+        env: [
+          { key: 'PHOTOPRISM_ADMIN_PASSWORD', value: 'change_moi' },
+          { key: 'PHOTOPRISM_SITE_URL', value: 'http://localhost:2342/' },
+        ],
+        dependsOn: [],
+      },
+    ],
+  },
+  {
+    id: 'kavita',
+    nom: 'Bibliotheque BD/mangas/ebooks (Kavita)',
+    description: 'Serveur de lecture rapide pour bandes dessinees, mangas et livres numeriques',
+    nouveau: true,
+    services: [
+      {
+        name: 'kavita', image: 'linuxserver/kavita:latest',
+        ports: [{ host: 5000, container: 5000 }],
+        volumes: ['./kavita-config:/config', './bibliotheque:/data'],
+        env: [{ key: 'PUID', value: '1000' }, { key: 'PGID', value: '1000' }, { key: 'TZ', value: 'Europe/Paris' }],
+        dependsOn: [],
+      },
+    ],
+  },
+  {
+    id: 'filebrowser',
+    nom: 'Gestionnaire de fichiers web (File Browser)',
+    description: 'Explorateur de fichiers accessible depuis un navigateur, simple, leger et sans base de donnees externe',
+    nouveau: true,
+    services: [
+      {
+        name: 'filebrowser', image: 'filebrowser/filebrowser:latest',
+        ports: [{ host: 8082, container: 80 }],
+        volumes: ['./fichiers:/srv'],
+        env: [], dependsOn: [],
+      },
+    ],
+  },
+  {
+    id: 'listmonk',
+    nom: 'Newsletter & mailing (Listmonk)',
+    description: 'Gestionnaire de listes de diffusion et d\'envoi de newsletters, auto-heberge et rapide',
+    nouveau: true,
+    services: [
+      {
+        name: 'listmonk', image: 'listmonk/listmonk:latest',
+        ports: [{ host: 9000, container: 9000 }],
+        volumes: ['./listmonk-config:/listmonk/config'],
+        env: [
+          { key: 'LISTMONK_db__host', value: 'db' },
+          { key: 'LISTMONK_db__password', value: 'change_moi' },
+        ],
+        dependsOn: ['db'],
+      },
+      {
+        name: 'db', image: 'postgres:16',
+        ports: [{ host: 5433, container: 5432 }],
+        volumes: ['./listmonk-data:/var/lib/postgresql/data'],
+        env: [{ key: 'POSTGRES_PASSWORD', value: 'change_moi' }, { key: 'POSTGRES_DB', value: 'listmonk' }],
+        dependsOn: [],
+      },
+    ],
+  },
+  {
+    id: 'gotify',
+    nom: 'Notifications push (Gotify)',
+    description: 'Serveur simple d\'envoi de notifications push par API REST, vers mobile ou desktop',
+    nouveau: true,
+    services: [
+      {
+        name: 'gotify', image: 'gotify/server:latest',
+        ports: [{ host: 8070, container: 80 }],
+        volumes: ['./gotify-data:/app/data'],
+        env: [{ key: 'GOTIFY_DEFAULTUSER_PASS', value: 'change_moi' }],
+        dependsOn: [],
+      },
+    ],
+  },
+  {
+    id: 'healthchecks',
+    nom: 'Supervision de taches planifiees (Healthchecks)',
+    description: 'Surveille tes taches cron et jobs planifies, alerte si un ping attendu n\'arrive pas',
+    nouveau: true,
+    services: [
+      {
+        name: 'healthchecks', image: 'lscr.io/linuxserver/healthchecks:latest',
+        ports: [{ host: 8000, container: 8000 }],
+        volumes: ['./healthchecks-config:/config'],
+        env: [
+          { key: 'PUID', value: '1000' }, { key: 'PGID', value: '1000' }, { key: 'TZ', value: 'Europe/Paris' },
+          { key: 'SECRET_KEY', value: 'change_moi' },
+          { key: 'SITE_ROOT', value: 'http://localhost:8000' },
+          { key: 'SITE_NAME', value: 'Healthchecks' },
+          { key: 'SUPERUSER_EMAIL', value: 'admin@example.com' },
+          { key: 'SUPERUSER_PASSWORD', value: 'change_moi' },
+        ],
+        dependsOn: [],
+      },
+    ],
+  },
+  {
+    id: 'dozzle',
+    nom: 'Visualiseur de logs Docker (Dozzle)',
+    description: 'Interface web legere pour suivre en direct les logs de tous tes conteneurs, sans configuration',
+    nouveau: true,
+    services: [
+      {
+        name: 'dozzle', image: 'amir20/dozzle:latest',
+        ports: [{ host: 8081, container: 8080 }],
+        volumes: ['/var/run/docker.sock:/var/run/docker.sock:ro'],
+        env: [], dependsOn: [],
+      },
+    ],
+  },
+  {
+    id: 'snipe-it',
+    nom: 'Gestion de parc informatique (Snipe-IT)',
+    description: 'Suivi de materiel, licences et consommables IT, alternative libre a des outils d\'inventaire payants',
+    nouveau: true,
+    services: [
+      {
+        name: 'snipe-it', image: 'snipe/snipe-it:latest',
+        ports: [{ host: 8000, container: 80 }],
+        volumes: ['./snipeit-data:/var/lib/snipeit'],
+        env: [
+          { key: 'APP_URL', value: 'http://localhost:8000' },
+          { key: 'APP_KEY', value: 'change_moi' },
+          { key: 'DB_HOST', value: 'db' },
+          { key: 'DB_DATABASE', value: 'snipeit' },
+          { key: 'DB_USERNAME', value: 'snipeit' },
+          { key: 'DB_PASSWORD', value: 'change_moi' },
+        ],
+        dependsOn: ['db'],
+      },
+      {
+        name: 'db', image: 'mariadb:11',
+        ports: [{ host: 3307, container: 3306 }],
+        volumes: ['./snipeit-db:/var/lib/mysql'],
+        env: [
+          { key: 'MYSQL_DATABASE', value: 'snipeit' },
+          { key: 'MYSQL_USER', value: 'snipeit' },
+          { key: 'MYSQL_PASSWORD', value: 'change_moi' },
+          { key: 'MYSQL_ROOT_PASSWORD', value: 'change_moi' },
+        ],
+        dependsOn: [],
+      },
+    ],
+  },
+  {
+    id: 'forgejo',
+    nom: 'Forge Git legere (Forgejo)',
+    description: 'Alternative libre et communautaire a GitHub/Gitea - depots, issues, CI via Actions',
+    nouveau: true,
+    services: [
+      {
+        name: 'forgejo', image: 'codeberg.org/forgejo/forgejo:latest',
+        ports: [{ host: 3000, container: 3000 }, { host: 2222, container: 22 }],
+        volumes: ['./forgejo-data:/data'],
+        env: [{ key: 'USER_UID', value: '1000' }, { key: 'USER_GID', value: '1000' }],
+        dependsOn: [],
       },
     ],
   },

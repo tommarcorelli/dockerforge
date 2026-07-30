@@ -31,6 +31,23 @@ Résumé de tout ce qui a été ajouté/corrigé, dans l'ordre.
 
 ## Correctifs récents
 
+- **13 nouveaux presets** (95 stacks au total) : Nginx Proxy Manager, stack
+  *Arr complète (Radarr + Sonarr + Prowlarr + qBittorrent), Navidrome,
+  Audiobookshelf, PhotoPrism, Kavita, File Browser, Listmonk, Gotify,
+  Healthchecks, Dozzle, Snipe-IT, Forgejo — images Docker vérifiées.
+- **Catalogue d'images enrichi** : 2 nouvelles catégories ("Téléchargement
+  & automatisation médias", "Médias personnels") + ajout de Forgejo,
+  Snipe-IT, Dozzle, Healthchecks, Gotify, Listmonk, File Browser aux
+  catégories existantes.
+- **Badge "Nouveau" + filtre "Nouveautés"** sur les stacks récemment
+  ajoutées (`stacks.js` : nouveau champ optionnel `nouveau: true`).
+- **Favoris de stacks** : bouton ★ sur chaque carte de `StackPresets`,
+  persisté en `localStorage` (nouveau module `favoris.js`, même logique
+  défensive que `modeles.js`/`projets.js` — jamais de plantage si le
+  stockage est plein ou indisponible), filtre "★ Favoris" et tri qui fait
+  remonter les favoris en tête de liste.
+- **Compteur de conteneurs par stack** affiché sur chaque carte.
+
 - **Rotation des logs par service** : ajouté — nouvelle option « Rotation
   des logs » dans les options avancées (`logMaxSize`/`logMaxFile`), génère
   un bloc `logging: { driver: json-file, options: { max-size, max-file } }`
