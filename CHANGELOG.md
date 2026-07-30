@@ -31,6 +31,23 @@ Résumé de tout ce qui a été ajouté/corrigé, dans l'ordre.
 
 ## Correctifs récents
 
+- **Passe de design général** : la police d'affichage passe de Manrope à
+  **Big Shoulders Display** (condensée, industrielle — clin d'œil direct
+  au thème « forge »), tracking retouché sur les titres pour rester
+  lisible avec une police condensée. Rayons de bordure resserrés
+  (`--radius` 20→14px, `--radius-lg` 28→20px) pour un rendu plus
+  « outil d'ingénierie » et moins « bulle SaaS ». Le fond du hero
+  remplace les blobs dégradés flous par une grille technique subtile
+  (façon plan/schéma), et le mot « FORGE » du logo s'allume une fois au
+  chargement (lueur ember, respecte `prefers-reduced-motion`). Les
+  décorations des cartes de stats passent de blobs colorés à des
+  marques d'angle façon repère de plan technique.
+- **Icônes sur les cartes de stacks** : chaque preset dans `StackPresets`
+  affiche désormais les logos (jusqu'à 5) des images Docker qui le
+  composent, retrouvés via `trouverIcone()` du catalogue.
+- **Docmost** (96e stack) : alternative libre à Notion/Confluence,
+  édition collaborative avec PostgreSQL + Redis. Ajouté aussi au
+  catalogue (catégorie Productivité & documentation).
 - **13 nouveaux presets** (95 stacks au total) : Nginx Proxy Manager, stack
   *Arr complète (Radarr + Sonarr + Prowlarr + qBittorrent), Navidrome,
   Audiobookshelf, PhotoPrism, Kavita, File Browser, Listmonk, Gotify,

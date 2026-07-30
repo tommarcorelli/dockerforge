@@ -284,6 +284,10 @@ export const CATALOGUE = [
         { key: 'DB_PASSWORD', value: 'change_moi' },
       ], icone: siBookstack },
       { nom: 'Trilium Notes', image: 'zadam/trilium:latest', portDefaut: 8080, suggestionNom: 'trilium', envDefaut: [], icone: siTrilium },
+      { nom: 'Docmost (wiki type Notion)', image: 'docmost/docmost:latest', portDefaut: 3010, suggestionNom: 'docmost', envDefaut: [
+        { key: 'APP_SECRET', value: 'change_moi' },
+        { key: 'DATABASE_URL', value: 'postgresql://docmost:change_moi@db:5432/docmost?schema=public' },
+      ], icone: null },
       { nom: 'Outline', image: 'outlinewiki/outline:latest', portDefaut: 3000, suggestionNom: 'outline', envDefaut: [
         { key: 'SECRET_KEY', value: 'change_moi' },
         { key: 'DATABASE_URL', value: 'postgres://outline:change_moi@db:5432/outline' },

@@ -45,7 +45,7 @@ export const CATEGORIE_PAR_STACK = {
   'nginx-proxy-manager': 'reseau', 'arr-stack': 'perso', navidrome: 'perso',
   audiobookshelf: 'perso', photoprism: 'perso', kavita: 'perso', filebrowser: 'perso',
   listmonk: 'outils', gotify: 'outils', healthchecks: 'monitoring', dozzle: 'monitoring',
-  'snipe-it': 'outils', forgejo: 'dev',
+  'snipe-it': 'outils', forgejo: 'dev', docmost: 'outils',
 }
 
 export function categorieDe(stack) {
@@ -1893,6 +1893,43 @@ export const STACKS = [
         volumes: ['./forgejo-data:/data'],
         env: [{ key: 'USER_UID', value: '1000' }, { key: 'USER_GID', value: '1000' }],
         dependsOn: [],
+      },
+    ],
+  },
+  {
+    id: 'docmost',
+    nom: 'Wiki collaboratif type Notion (Docmost)',
+    description: 'Alternative libre a Notion/Confluence, edition collaborative en temps reel, diagrammes integres',
+    nouveau: true,
+    services: [
+      {
+        name: 'docmost', image: 'docmost/docmost:latest',
+        ports: [{ host: 3010, container: 3000 }],
+        volumes: ['./docmost-storage:/app/data/storage'],
+        env: [
+          { key: 'APP_URL', value: 'http://localhost:3010' },
+          { key: 'APP_SECRET', value: 'change_moi' },
+          { key: 'DATABASE_URL', value: 'postgresql://docmost:change_moi@db:5432/docmost?schema=public' },
+          { key: 'REDIS_URL', value: 'redis://redis:6379' },
+        ],
+        dependsOn: ['db', 'redis'],
+      },
+      {
+        name: 'db', image: 'postgres:16-alpine',
+        ports: [{ host: 5434, container: 5432 }],
+        volumes: ['./docmost-db:/var/lib/postgresql/data'],
+        env: [
+          { key: 'POSTGRES_DB', value: 'docmost' },
+          { key: 'POSTGRES_USER', value: 'docmost' },
+          { key: 'POSTGRES_PASSWORD', value: 'change_moi' },
+        ],
+        dependsOn: [],
+      },
+      {
+        name: 'redis', image: 'redis:7.2-alpine',
+        ports: [{ host: 6380, container: 6379 }],
+        volumes: ['./docmost-redis:/data'],
+        env: [], dependsOn: [],
       },
     ],
   },

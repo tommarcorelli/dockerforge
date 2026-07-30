@@ -7,7 +7,7 @@
    • Typographie : Manrope (déroute l'AI slop) + JetBrains Mono
    ============================================================================ */
 
-@import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@600;700;800;900&family=Manrope:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap');
 
 /* ---------- TOKENS ---------- */
 :root {
@@ -45,12 +45,12 @@
   --shadow: 0 1px 2px rgba(15, 25, 41, 0.05), 0 8px 24px rgba(15, 25, 41, 0.06);
   --shadow-lg: 0 2px 4px rgba(15, 25, 41, 0.06), 0 24px 48px rgba(15, 25, 41, 0.10);
   --shadow-glow: 0 0 0 4px rgba(36, 150, 237, 0.18);
-  --radius: 20px;
-  --radius-sm: 12px;
-  --radius-lg: 28px;
+  --radius: 14px;
+  --radius-sm: 9px;
+  --radius-lg: 20px;
 
   /* Fonts */
-  --font-display: 'Manrope', 'Segoe UI', system-ui, sans-serif;
+  --font-display: 'Big Shoulders Display', 'Manrope', 'Segoe UI', system-ui, sans-serif;
   --font-body:    'Manrope', 'Segoe UI', system-ui, sans-serif;
   --font-mono:    'JetBrains Mono', 'Cascadia Code', monospace;
 
@@ -139,15 +139,17 @@ code {
 }
 .hero-fond {
   position: absolute;
-  inset: -20% -10% auto -10%;
-  height: 420px;
-  background:
-    radial-gradient(circle at 20% 30%, rgba(36, 150, 237, 0.35), transparent 55%),
-    radial-gradient(circle at 80% 40%, rgba(238, 125, 61, 0.28), transparent 55%);
-  filter: blur(60px);
-  opacity: 0.9;
+  inset: 0;
+  background-image:
+    linear-gradient(var(--line) 1px, transparent 1px),
+    linear-gradient(90deg, var(--line) 1px, transparent 1px);
+  background-size: 44px 44px;
+  -webkit-mask-image: radial-gradient(ellipse 70% 90% at 50% 0%, #000 40%, transparent 88%);
+  mask-image: radial-gradient(ellipse 70% 90% at 50% 0%, #000 40%, transparent 88%);
+  opacity: 0.5;
   pointer-events: none;
 }
+[data-theme='sombre'] .hero-fond { opacity: 0.3; }
 .hero-contenu {
   position: relative;
   max-width: 1240px;
@@ -187,7 +189,7 @@ code {
   font-family: var(--font-display);
   font-weight: 800;
   font-size: clamp(2.6rem, 7vw, 4.6rem);
-  letter-spacing: -0.03em;
+  letter-spacing: 0.01em;
   margin: 0.9rem 0 0.6rem;
   line-height: 1;
   color: var(--ink);
@@ -201,6 +203,12 @@ code {
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
+  animation: braise-allumage 1.6s ease-out 0.1s both;
+}
+@keyframes braise-allumage {
+  0% { filter: drop-shadow(0 0 0 rgba(238, 125, 61, 0)); }
+  40% { filter: drop-shadow(0 0 22px rgba(238, 125, 61, 0.6)); }
+  100% { filter: drop-shadow(0 0 7px rgba(238, 125, 61, 0.28)); }
 }
 .hero-titre svg,
 .hero-titre > :first-child {
@@ -268,15 +276,15 @@ code {
 .stat::before {
   content: '';
   position: absolute;
-  top: 1rem;
-  right: 1rem;
-  width: 34px; height: 34px;
-  border-radius: 12px;
-  background: linear-gradient(135deg, var(--docker), var(--docker-2));
-  opacity: 0.18;
+  top: 0.75rem;
+  right: 0.75rem;
+  width: 16px; height: 16px;
+  border-top: 2px solid var(--docker);
+  border-right: 2px solid var(--docker);
+  opacity: 0.55;
 }
-.stat:nth-child(2)::before { background: linear-gradient(135deg, var(--forge), var(--forge-2)); }
-.stat:nth-child(3)::before { background: linear-gradient(135deg, var(--mint), #0d8862); }
+.stat:nth-child(2)::before { border-color: var(--forge); }
+.stat:nth-child(3)::before { border-color: var(--mint); }
 
 .stat-valeur {
   font-family: var(--font-display);
@@ -285,7 +293,7 @@ code {
   color: var(--ink);
   line-height: 1.1;
   font-variant-numeric: tabular-nums;
-  letter-spacing: -0.02em;
+  letter-spacing: -0.01em;
 }
 .stat-label {
   font-size: 0.78rem;
@@ -352,7 +360,7 @@ code {
   font-family: var(--font-display);
   font-weight: 700;
   font-size: 1.5rem;
-  letter-spacing: -0.02em;
+  letter-spacing: 0em;
   color: var(--ink);
 }
 
@@ -383,7 +391,7 @@ code {
   font-family: var(--font-display);
   font-weight: 700;
   font-size: 1.35rem;
-  letter-spacing: -0.01em;
+  letter-spacing: 0em;
   color: var(--ink);
 }
 
@@ -613,6 +621,12 @@ button:active { transform: scale(0.97); }
   color: var(--muted);
   line-height: 1.5;
 }
+.stack-icones {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin-top: 0.1rem;
+}
 .stack-nb-services {
   font-size: 0.7rem;
   color: var(--muted);
@@ -823,7 +837,7 @@ button:active { transform: scale(0.97); }
   font-family: var(--font-display);
   font-weight: 700;
   font-size: 1.1rem;
-  letter-spacing: -0.01em;
+  letter-spacing: 0em;
   color: var(--ink);
 }
 .conteneur-detail {

@@ -1,6 +1,8 @@
 import { useState, useMemo } from 'react'
 import { STACKS, CATEGORIE_LABELS, categorieDe } from '../core/stacks.js'
 import { chargerFavoris, basculerFavori } from '../core/favoris.js'
+import { trouverIcone } from '../core/catalogue.js'
+import Icon from './Icon.jsx'
 
 // Dérivé de CATEGORIE_LABELS (source unique de vérité, définie dans
 // stacks.js) plutôt que recopié à la main ici : sans ça, ajouter une
@@ -119,6 +121,7 @@ function StackPresets({ onCharger }) {
         <div className="stacks-liste">
           {stacksAffichees.map((stack) => {
             const estFavori = favoris.includes(stack.id)
+            const icones = [...new Set(stack.services.map((sv) => trouverIcone(sv.image)).filter(Boolean))].slice(0, 5)
             return (
               <div className="stack-carte-conteneur" key={stack.id}>
                 <button className="stack-carte" onClick={() => onCharger(stack)}>
@@ -127,6 +130,13 @@ function StackPresets({ onCharger }) {
                     {stack.nouveau && <span className="badge-nouveau">Nouveau</span>}
                   </span>
                   <span className="stack-description">{stack.description}</span>
+                  {icones.length > 0 && (
+                    <span className="stack-icones">
+                      {icones.map((icone, i) => (
+                        <Icon key={i} icon={icone} size={16} />
+                      ))}
+                    </span>
+                  )}
                   <span className="stack-nb-services">
                     {stack.services.length} conteneur{stack.services.length > 1 ? 's' : ''}
                   </span>

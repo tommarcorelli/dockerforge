@@ -173,7 +173,7 @@ dockerforge/
   répartition des services par réseau.
 
 **Stacks & import**
-- **95 stacks prêtes à l'emploi**, filtrables par catégorie (Web & CMS,
+- **96 stacks prêtes à l'emploi**, filtrables par catégorie (Web & CMS,
   Données & dev, Réseau & sécurité, Monitoring & maintenance,
   Auto-hébergement perso, Communication & outils) en plus de la recherche
   texte libre :
@@ -310,13 +310,14 @@ Correctifs récents._
   personnel). Les 3 images correspondantes rejoignent aussi le catalogue
   (catégories Sécurité & annuaire, Productivité & documentation,
   Auto-hébergement).
-- **Vague 10 de stacks** (82 → 95) : Nginx Proxy Manager, stack *Arr
+- **Vague 10 de stacks** (82 → 96) : Nginx Proxy Manager, stack *Arr
   complète (Radarr + Sonarr + Prowlarr + qBittorrent), Navidrome,
   Audiobookshelf, PhotoPrism, Kavita, File Browser, Listmonk, Gotify,
-  Healthchecks, Dozzle, Snipe-IT, Forgejo. 2 nouvelles catégories de
-  catalogue (Téléchargement & automatisation médias, Médias personnels).
-  Badge « Nouveau » + filtre « Nouveautés » sur les stacks récentes
-  (champ optionnel `nouveau: true`).
+  Healthchecks, Dozzle, Snipe-IT, Forgejo, Docmost. 2 nouvelles
+  catégories de catalogue (Téléchargement & automatisation médias,
+  Médias personnels). Badge « Nouveau » + filtre « Nouveautés » sur les
+  stacks récentes (champ optionnel `nouveau: true`), et icônes des
+  images Docker affichées directement sur chaque carte de preset.
 - **Favoris de stacks** : bouton ★ sur chaque carte de la liste des
   stacks, persisté en `localStorage` (nouveau module `favoris.js`),
   filtre « ★ Favoris » et tri qui fait remonter les favoris en tête de
