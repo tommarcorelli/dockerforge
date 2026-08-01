@@ -273,6 +273,13 @@ export function buildKubernetesManifests(services, options = {}) {
       `        - name: ${nom}`,
       `          image: ${yamlValue(service.image || '')}`,
     ]
+    if (service.command && service.command.trim() !== '') {
+      // On passe par /bin/sh -c plutôt que de découper la commande en
+      // liste : ça évite de mal interpréter des guillemets ou pipes que
+      // l'utilisateur aurait écrits comme pour du docker-compose classique.
+      lignes.push('          command: ["/bin/sh", "-c"]')
+      lignes.push(`          args: [${JSON.stringify(service.command.trim())}]`)
+    }
     if (portsConteneur.length > 0) {
       lignes.push('          ports:')
       for (const p of portsConteneur) {
@@ -431,6 +438,10 @@ export function buildDockerCompose(services, options = {}) {
     const name = service.name || 'service_sans_nom'
     lines.push(`  ${name}:`)
     lines.push(`    image: ${yamlValue(service.image || 'nginx:latest')}`)
+
+    if (service.command && service.command.trim() !== '') {
+      lines.push(`    command: ${yamlValue(service.command.trim())}`)
+    }
 
     if (service.profiles && service.profiles.length > 0) {
       lines.push('    profiles:')
@@ -720,6 +731,12 @@ export function buildDockerRunScript(services, options = {}) {
       parts.push(`--tmpfs ${shValue(t.trim())}`)
     }
     parts.push(shValue(service.image || 'nginx:latest'))
+    if (service.command && service.command.trim() !== '') {
+      // Pas de shValue ici : une commande comme "bundle exec sidekiq -C x"
+      // doit rester plusieurs arguments distincts pour le conteneur, pas
+      // un seul bloc entre guillemets.
+      parts.push(service.command.trim())
+    }
 
     lignes.push(parts.join(' \\\n  '))
 

@@ -46,6 +46,9 @@ export const CATEGORIE_PAR_STACK = {
   audiobookshelf: 'perso', photoprism: 'perso', kavita: 'perso', filebrowser: 'perso',
   listmonk: 'outils', gotify: 'outils', healthchecks: 'monitoring', dozzle: 'monitoring',
   'snipe-it': 'outils', forgejo: 'dev', docmost: 'outils',
+  'restic-rest-server': 'perso', wallabag: 'perso', drawio: 'perso',
+  kimai: 'outils', 'docker-registry': 'dev', ntfy: 'outils', chatwoot: 'outils',
+  crowdsec: 'monitoring', 'speedtest-tracker': 'monitoring', trivy: 'dev',
 }
 
 export function categorieDe(stack) {
@@ -1933,6 +1936,243 @@ export const STACKS = [
       },
     ],
   },
+  {
+    id: 'restic-rest-server',
+    nom: 'Cible de sauvegarde Restic (rest-server)',
+    description: 'Depot HTTP centralise pour tes sauvegardes Restic, dedupliquees et chiffrees cote client',
+    nouveau: true,
+    services: [
+      {
+        name: 'restic-rest-server', image: 'restic/rest-server:latest',
+        ports: [{ host: 8010, container: 8000 }],
+        volumes: ['./restic-data:/data'],
+        env: [{ key: 'OPTIONS', value: '--no-auth' }],
+        dependsOn: [],
+      },
+    ],
+  },
+  {
+    id: 'wallabag',
+    nom: 'Lecture differee (Wallabag)',
+    description: 'Sauvegarde des articles pour les lire plus tard, sans pub ni tracking, alternative libre a Pocket',
+    nouveau: true,
+    services: [
+      {
+        name: 'wallabag', image: 'wallabag/wallabag:latest',
+        ports: [{ host: 8083, container: 80 }],
+        volumes: ['./wallabag-data:/var/www/wallabag/data', './wallabag-images:/var/www/wallabag/web/assets/images'],
+        env: [{ key: 'SYMFONY__ENV__DOMAIN_NAME', value: 'http://localhost:8083' }],
+        dependsOn: [],
+      },
+    ],
+  },
+  {
+    id: 'drawio',
+    nom: 'Diagrammes techniques (draw.io)',
+    description: 'Editeur de diagrammes et schemas (reseau, archi, organigrammes) auto-heberge, sans compte cloud requis',
+    nouveau: true,
+    services: [
+      {
+        name: 'drawio', image: 'jgraph/drawio:latest',
+        ports: [{ host: 8092, container: 8080 }],
+        volumes: [],
+        env: [], dependsOn: [],
+      },
+    ],
+  },
+  {
+    id: 'kimai',
+    nom: 'Suivi du temps de travail (Kimai)',
+    description: 'Chronometrage des heures et projets pour freelances et equipes, export de factures',
+    nouveau: true,
+    services: [
+      {
+        name: 'kimai', image: 'kimai/kimai2:apache',
+        ports: [{ host: 8001, container: 8001 }],
+        volumes: ['./kimai-data:/opt/kimai/var/data', './kimai-plugins:/opt/kimai/var/plugins'],
+        env: [
+          { key: 'ADMINMAIL', value: 'admin@example.com' },
+          { key: 'ADMINPASS', value: 'change_moi' },
+          { key: 'DATABASE_URL', value: 'mysql://kimai:change_moi@db:3306/kimai?charset=utf8mb4' },
+        ],
+        dependsOn: ['db'],
+      },
+      {
+        name: 'db', image: 'mysql:8.3',
+        ports: [{ host: 3308, container: 3306 }],
+        volumes: ['./kimai-db:/var/lib/mysql'],
+        env: [
+          { key: 'MYSQL_DATABASE', value: 'kimai' },
+          { key: 'MYSQL_USER', value: 'kimai' },
+          { key: 'MYSQL_PASSWORD', value: 'change_moi' },
+          { key: 'MYSQL_ROOT_PASSWORD', value: 'change_moi' },
+        ],
+        dependsOn: [],
+      },
+    ],
+  },
+  {
+    id: 'docker-registry',
+    nom: 'Registre Docker prive (Registry + UI)',
+    description: 'Heberge tes propres images Docker en interne, avec une interface web pour parcourir le catalogue',
+    nouveau: true,
+    services: [
+      {
+        name: 'registry', image: 'registry:2',
+        ports: [{ host: 5000, container: 5000 }],
+        volumes: ['./registry-data:/var/lib/registry'],
+        env: [], dependsOn: [],
+      },
+      {
+        name: 'registry-ui', image: 'joxit/docker-registry-ui:latest',
+        ports: [{ host: 8093, container: 80 }],
+        volumes: [],
+        env: [
+          { key: 'SINGLE_REGISTRY', value: 'true' },
+          { key: 'REGISTRY_TITLE', value: 'Registre Docker prive' },
+          { key: 'NGINX_PROXY_PASS_URL', value: 'http://registry:5000' },
+          { key: 'REGISTRY_SECURED', value: 'false' },
+        ],
+        dependsOn: ['registry'],
+      },
+    ],
+  },
+  {
+    id: 'ntfy',
+    nom: 'Notifications push simples (ntfy)',
+    description: 'Envoi de notifications push par simple appel HTTP, vers mobile ou desktop, sans compte requis',
+    nouveau: true,
+    services: [
+      {
+        name: 'ntfy', image: 'binwiederhier/ntfy:latest',
+        command: 'serve',
+        ports: [{ host: 8090, container: 80 }],
+        volumes: ['./ntfy-data:/var/cache/ntfy', './ntfy-config:/etc/ntfy'],
+        env: [{ key: 'TZ', value: 'Europe/Paris' }],
+        dependsOn: [],
+      },
+    ],
+  },
+  {
+    id: 'chatwoot',
+    nom: 'Support client & live chat (Chatwoot)',
+    description: 'Alternative libre a Intercom/Zendesk, omnicanal (chat, email, reseaux). Necessite une preparation initiale de la base : "docker compose run --rm chatwoot bundle exec rails db:chatwoot_prepare" avant le premier lancement',
+    nouveau: true,
+    services: [
+      {
+        name: 'chatwoot', image: 'chatwoot/chatwoot:latest',
+        command: 'bundle exec rails s -p 3000 -b 0.0.0.0',
+        ports: [{ host: 3011, container: 3000 }],
+        volumes: ['./chatwoot-storage:/app/storage'],
+        env: [
+          { key: 'SECRET_KEY_BASE', value: 'change_moi' },
+          { key: 'POSTGRES_HOST', value: 'postgres' },
+          { key: 'POSTGRES_USERNAME', value: 'postgres' },
+          { key: 'POSTGRES_PASSWORD', value: 'change_moi' },
+          { key: 'POSTGRES_DATABASE', value: 'chatwoot' },
+          { key: 'REDIS_URL', value: 'redis://redis:6379' },
+          { key: 'FRONTEND_URL', value: 'http://localhost:3011' },
+          { key: 'INSTALLATION_ENV', value: 'docker' },
+          { key: 'RAILS_ENV', value: 'production' },
+          { key: 'NODE_ENV', value: 'production' },
+        ],
+        dependsOn: ['postgres', 'redis'],
+      },
+      {
+        name: 'chatwoot-worker', image: 'chatwoot/chatwoot:latest',
+        command: 'bundle exec sidekiq -C config/sidekiq.yml',
+        ports: [],
+        volumes: ['./chatwoot-storage:/app/storage'],
+        env: [
+          { key: 'SECRET_KEY_BASE', value: 'change_moi' },
+          { key: 'POSTGRES_HOST', value: 'postgres' },
+          { key: 'POSTGRES_USERNAME', value: 'postgres' },
+          { key: 'POSTGRES_PASSWORD', value: 'change_moi' },
+          { key: 'POSTGRES_DATABASE', value: 'chatwoot' },
+          { key: 'REDIS_URL', value: 'redis://redis:6379' },
+          { key: 'INSTALLATION_ENV', value: 'docker' },
+          { key: 'RAILS_ENV', value: 'production' },
+          { key: 'NODE_ENV', value: 'production' },
+        ],
+        dependsOn: ['postgres', 'redis'],
+      },
+      {
+        name: 'postgres', image: 'pgvector/pgvector:pg16',
+        ports: [{ host: 5435, container: 5432 }],
+        volumes: ['./chatwoot-db:/var/lib/postgresql/data'],
+        env: [
+          { key: 'POSTGRES_DB', value: 'chatwoot' },
+          { key: 'POSTGRES_USER', value: 'postgres' },
+          { key: 'POSTGRES_PASSWORD', value: 'change_moi' },
+        ],
+        dependsOn: [],
+      },
+      {
+        name: 'redis', image: 'redis:alpine',
+        ports: [{ host: 6381, container: 6379 }],
+        volumes: ['./chatwoot-redis:/data'],
+        env: [], dependsOn: [],
+      },
+    ],
+  },
+  {
+    id: 'crowdsec',
+    nom: 'Detection d\'intrusion collaborative (CrowdSec)',
+    description: 'Analyse tes logs pour detecter attaques et scans, avec une base de reputation IP partagee par la communaute',
+    nouveau: true,
+    services: [
+      {
+        name: 'crowdsec', image: 'crowdsecurity/crowdsec:latest',
+        ports: [{ host: 8084, container: 8080 }],
+        volumes: [
+          './crowdsec-config:/etc/crowdsec',
+          './crowdsec-data:/var/lib/crowdsec/data',
+          '/var/log:/var/log:ro',
+        ],
+        env: [
+          { key: 'COLLECTIONS', value: 'crowdsecurity/linux crowdsecurity/sshd' },
+          { key: 'GID', value: '1000' },
+        ],
+        dependsOn: [],
+      },
+    ],
+  },
+  {
+    id: 'speedtest-tracker',
+    nom: 'Suivi du debit internet (Speedtest Tracker)',
+    description: 'Lance des tests de debit reguliers et garde un historique de la qualite de ta connexion internet',
+    nouveau: true,
+    services: [
+      {
+        name: 'speedtest-tracker', image: 'lscr.io/linuxserver/speedtest-tracker:latest',
+        ports: [{ host: 8095, container: 80 }],
+        volumes: ['./speedtest-data:/config'],
+        env: [
+          { key: 'PUID', value: '1000' }, { key: 'PGID', value: '1000' }, { key: 'TZ', value: 'Europe/Paris' },
+          { key: 'APP_KEY', value: 'change_moi' },
+          { key: 'APP_URL', value: 'http://localhost:8095' },
+          { key: 'DB_CONNECTION', value: 'sqlite' },
+        ],
+        dependsOn: [],
+      },
+    ],
+  },
+  {
+    id: 'trivy',
+    nom: 'Scanner de vulnerabilites (Trivy en mode serveur)',
+    description: 'Detecte les failles connues dans tes images Docker (CVE), en mode serveur pour l\'integrer a une CI ou scanner a la demande',
+    nouveau: true,
+    services: [
+      {
+        name: 'trivy', image: 'aquasec/trivy:latest',
+        command: 'server --listen 0.0.0.0:4954',
+        ports: [{ host: 4954, container: 4954 }],
+        volumes: ['./trivy-cache:/root/.cache/trivy'],
+        env: [{ key: 'TRIVY_NO_PROGRESS', value: 'true' }],
+        dependsOn: [],
+      },
+    ],
+  },
 ]
 
 // Construit des objets service complets (avec id) à partir d'une stack,
@@ -1950,6 +2190,7 @@ export function construireStack(stack, portsUtilisesInitial) {
       id: crypto.randomUUID(),
       name: s.name,
       image: s.image,
+      command: s.command || '',
       ports: ports.length > 0 ? ports : [{ host: '', container: '' }],
       volumes: s.volumes && s.volumes.length > 0 ? s.volumes : [''],
       env: s.env && s.env.length > 0 ? s.env : [{ key: '', value: '' }],

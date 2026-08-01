@@ -254,6 +254,50 @@ test('buildDockerRunScript ajoute les labels Traefik via -l', () => {
   assertInclut(script, 'traefik.enable=true')
 })
 
+test('buildDockerCompose ajoute la commande personnalisée juste après image', () => {
+  const yaml = buildDockerCompose([serviceBase({ command: 'serve' })])
+  assertInclut(yaml, 'command: serve')
+  // "command:" doit être juste après "image:", avant les autres clés
+  const idxImage = yaml.indexOf('image:')
+  const idxCommand = yaml.indexOf('command:')
+  const idxRestart = yaml.indexOf('restart:')
+  assert(idxImage < idxCommand && idxCommand < idxRestart, 'command devrait être entre image et restart')
+})
+
+test('buildDockerCompose ignore command si vide ou absent', () => {
+  const yamlVide = buildDockerCompose([serviceBase({ command: '' })])
+  const yamlAbsent = buildDockerCompose([serviceBase()])
+  assert(!yamlVide.includes('command:'))
+  assert(!yamlAbsent.includes('command:'))
+})
+
+test('buildDockerRunScript place la commande après le nom de l\'image, en arguments séparés', () => {
+  const script = buildDockerRunScript([serviceBase({ command: 'bundle exec sidekiq -C config/sidekiq.yml' })])
+  assertInclut(script, 'nginx:latest \\\n  bundle exec sidekiq -C config/sidekiq.yml')
+})
+
+test('buildKubernetesManifests traduit command en command/args via /bin/sh -c', () => {
+  const manifeste = buildKubernetesManifests([serviceBase({ command: 'serve' })])
+  assertInclut(manifeste, 'command: ["/bin/sh", "-c"]')
+  assertInclut(manifeste, 'args: ["serve"]')
+})
+
+test('importerDockerCompose relit une commande chaîne et une commande liste', () => {
+  const { services } = importerDockerCompose(`
+services:
+  a:
+    image: binwiederhier/ntfy:latest
+    command: serve
+  b:
+    image: chatwoot/chatwoot:latest
+    command: ["bundle", "exec", "sidekiq", "-C", "config/sidekiq.yml"]
+`)
+  const a = services.find((s) => s.name === 'a')
+  const b = services.find((s) => s.name === 'b')
+  assert(a.command === 'serve')
+  assert(b.command === 'bundle exec sidekiq -C config/sidekiq.yml')
+})
+
 test('validerServices avertit si Traefik est activé sans domaine', () => {
   const { avertissements } = validerServices([
     serviceBase({ volumes: ['/data'], traefik: { active: true, domaine: '' } }),

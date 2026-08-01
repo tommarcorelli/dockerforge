@@ -21,6 +21,7 @@ import {
   siOllama,
   siAdguard, siActualbudget,
   siRadarr, siSonarr, siQbittorrent, siForgejo, siListmonk, siAudiobookshelf,
+  siWallabag, siDiagramsdotnet, siNtfy, siTrivy,
 } from 'simple-icons'
 
 export const CATALOGUE = [
@@ -98,6 +99,10 @@ export const CATALOGUE = [
         { key: 'SUPERUSER_EMAIL', value: 'admin@example.com' },
         { key: 'SUPERUSER_PASSWORD', value: 'change_moi' },
       ], icone: null },
+      { nom: 'Speedtest Tracker', image: 'lscr.io/linuxserver/speedtest-tracker:latest', portDefaut: 8095, suggestionNom: 'speedtest-tracker', envDefaut: [
+        { key: 'APP_KEY', value: 'change_moi' },
+        { key: 'DB_CONNECTION', value: 'sqlite' },
+      ], icone: null },
     ],
   },
   {
@@ -135,15 +140,15 @@ export const CATALOGUE = [
         { key: 'KEYCLOAK_ADMIN_PASSWORD', value: 'change_moi' },
       ] },
       { nom: 'Jenkins', image: 'jenkins/jenkins:lts', portDefaut: 8080, suggestionNom: 'jenkins', envDefaut: [], icone: siJenkins },
+      { nom: 'Trivy (scan de vulnérabilités)', image: 'aquasec/trivy:latest', portDefaut: 4954, suggestionNom: 'trivy', envDefaut: [
+        { key: 'TRIVY_NO_PROGRESS', value: 'true' },
+      ], commandeDefaut: 'server --listen 0.0.0.0:4954', icone: siTrivy },
       { nom: 'Nextcloud', image: 'nextcloud:latest', portDefaut: 80, suggestionNom: 'nextcloud', envDefaut: [], icone: siNextcloud },
       { nom: 'Vaultwarden', image: 'vaultwarden/server:latest', portDefaut: 80, suggestionNom: 'vaultwarden', envDefaut: [], icone: siVaultwarden },
       { nom: 'GitLab', image: 'gitlab/gitlab-ce:latest', portDefaut: 80, suggestionNom: 'gitlab', envDefaut: [], icone: siGitlab },
       { nom: 'SonarQube', image: 'sonarqube:latest', portDefaut: 9000, suggestionNom: 'sonarqube', envDefaut: [], icone: siSonarqube },
       { nom: 'Jupyter', image: 'jupyter/base-notebook:latest', portDefaut: 8888, suggestionNom: 'jupyter', envDefaut: [], icone: siJupyter },
       { nom: 'Registre Docker privé', image: 'registry:2', portDefaut: 5000, suggestionNom: 'registry', envDefaut: [] },
-      { nom: 'CrowdSec', image: 'crowdsecurity/crowdsec:latest', portDefaut: 8080, suggestionNom: 'crowdsec', envDefaut: [
-        { key: 'COLLECTIONS', value: 'crowdsecurity/nginx crowdsecurity/sshd' },
-      ] },
       { nom: 'Gitea', image: 'gitea/gitea:latest', portDefaut: 3000, suggestionNom: 'gitea', envDefaut: [], icone: siGitea },
       { nom: 'Forgejo', image: 'codeberg.org/forgejo/forgejo:latest', portDefaut: 3000, suggestionNom: 'forgejo', envDefaut: [
         { key: 'USER_UID', value: '1000' }, { key: 'USER_GID', value: '1000' },
@@ -160,6 +165,10 @@ export const CATALOGUE = [
       { nom: 'Matomo (analytics)', image: 'matomo:latest', portDefaut: 80, suggestionNom: 'matomo', envDefaut: [
         { key: 'MATOMO_DATABASE_HOST', value: 'db' },
       ], icone: siMatomo },
+      { nom: 'Kimai (suivi du temps)', image: 'kimai/kimai2:apache', portDefaut: 8001, suggestionNom: 'kimai', envDefaut: [
+        { key: 'ADMINPASS', value: 'change_moi' },
+        { key: 'DATABASE_URL', value: 'mysql://kimai:change_moi@db:3306/kimai?charset=utf8mb4' },
+      ], icone: null },
     ],
   },
   {
@@ -189,12 +198,18 @@ export const CATALOGUE = [
       { nom: 'Linkding (marque-pages)', image: 'sissbruecker/linkding:latest', portDefaut: 9090, suggestionNom: 'linkding', envDefaut: [], icone: null },
       { nom: 'Changedetection.io', image: 'ghcr.io/dgtlmoon/changedetection.io:latest', portDefaut: 5000, suggestionNom: 'changedetection', envDefaut: [], icone: null },
       { nom: 'Actual Budget', image: 'actualbudget/actual-server:latest', portDefaut: 5006, suggestionNom: 'actual-budget', envDefaut: [], icone: siActualbudget },
+      { nom: 'Wallabag (lecture différée)', image: 'wallabag/wallabag:latest', portDefaut: 8083, suggestionNom: 'wallabag', envDefaut: [
+        { key: 'SYMFONY__ENV__DOMAIN_NAME', value: 'http://localhost:8083' },
+      ], icone: siWallabag },
     ],
   },
   {
     categorie: 'Sécurité & annuaire',
     teinte: 'cyan',
     images: [
+      { nom: 'CrowdSec (anti-intrusion)', image: 'crowdsecurity/crowdsec:latest', portDefaut: 8084, suggestionNom: 'crowdsec', envDefaut: [
+        { key: 'COLLECTIONS', value: 'crowdsecurity/linux crowdsecurity/sshd' },
+      ], icone: null },
       { nom: 'OpenLDAP', image: 'osixia/openldap:latest', portDefaut: 389, suggestionNom: 'openldap', envDefaut: [
         { key: 'LDAP_ORGANISATION', value: 'Mon Entreprise' },
         { key: 'LDAP_DOMAIN', value: 'example.local' },
@@ -253,6 +268,7 @@ export const CATALOGUE = [
       { nom: 'Gotify (notifications)', image: 'gotify/server:latest', portDefaut: 8070, suggestionNom: 'gotify', envDefaut: [
         { key: 'GOTIFY_DEFAULTUSER_PASS', value: 'change_moi' },
       ], icone: null },
+      { nom: 'ntfy (notifications)', image: 'binwiederhier/ntfy:latest', portDefaut: 8090, suggestionNom: 'ntfy', envDefaut: [], commandeDefaut: 'serve', icone: siNtfy },
       { nom: 'Listmonk (newsletter)', image: 'listmonk/listmonk:latest', portDefaut: 9000, suggestionNom: 'listmonk', envDefaut: [
         { key: 'LISTMONK_db__host', value: 'db' },
       ], icone: siListmonk },
@@ -269,6 +285,9 @@ export const CATALOGUE = [
       { nom: 'Syncthing', image: 'syncthing/syncthing:latest', portDefaut: 8384, suggestionNom: 'syncthing', envDefaut: [], icone: siSyncthing },
       { nom: 'Rclone (rcd)', image: 'rclone/rclone:latest', portDefaut: 5572, suggestionNom: 'rclone', envDefaut: [], icone: siRclone },
       { nom: 'File Browser', image: 'filebrowser/filebrowser:latest', portDefaut: 8082, suggestionNom: 'filebrowser', envDefaut: [], icone: null },
+      { nom: 'Restic REST Server', image: 'restic/rest-server:latest', portDefaut: 8010, suggestionNom: 'restic-rest-server', envDefaut: [
+        { key: 'OPTIONS', value: '--no-auth' },
+      ], icone: null },
     ],
   },
   {
@@ -295,6 +314,7 @@ export const CATALOGUE = [
       { nom: 'Vikunja (tâches)', image: 'vikunja/vikunja:latest', portDefaut: 3456, suggestionNom: 'vikunja', envDefaut: [
         { key: 'VIKUNJA_SERVICE_JWTSECRET', value: 'change_moi' },
       ], icone: null },
+      { nom: 'draw.io (diagrammes)', image: 'jgraph/drawio:latest', portDefaut: 8092, suggestionNom: 'drawio', envDefaut: [], icone: siDiagramsdotnet },
     ],
   },
   {

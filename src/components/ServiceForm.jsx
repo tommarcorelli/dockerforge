@@ -3,6 +3,7 @@ import ImageCatalog from './ImageCatalog.jsx'
 import Aide from './Aide.jsx'
 import { POLITIQUES_RESTART, estSecret, genererMotDePasse } from '../core/generateur.js'
 import { portsHoteUtilises, trouverPortLibre } from '../core/catalogue.js'
+import { useLangue } from '../core/i18n.js'
 
 // Détecte une clé applicative type APP_KEY (Laravel/Firefly III...) qui a des
 // contraintes de format particulières (longueur/encodage précis selon l'appli)
@@ -15,6 +16,7 @@ const serviceVide = () => ({
   id: crypto.randomUUID(),
   name: '',
   image: '',
+  command: '',
   ports: [{ host: '', container: '' }],
   volumes: [''],
   env: [{ key: '', value: '' }],
@@ -38,6 +40,7 @@ const serviceVide = () => ({
 // essentiel (toujours visible), configuration (volumes/env, repliable),
 // avancé (redémarrage/dépendances/réseaux/profils/santé/ressources, repliable)
 function ServiceForm({ onAdd, servicesExistants, servicesActuels, networksDisponibles, serviceAEditer, onUpdate, onAnnulerEdition, secretsInclus, secretsExclus }) {
+  const { t } = useLangue()
   const [service, setService] = useState(serviceVide())
   const [ouvertConfig, setOuvertConfig] = useState(false)
   const [ouvertAvance, setOuvertAvance] = useState(false)
@@ -122,6 +125,10 @@ function ServiceForm({ onAdd, servicesExistants, servicesActuels, networksDispon
         item.healthcheck && !s.healthcheck.test
           ? { ...s.healthcheck, test: item.healthcheck }
           : s.healthcheck,
+      command:
+        item.commandeDefaut && !s.command
+          ? item.commandeDefaut
+          : s.command,
     }))
     // Si l'image apporte des variables d'env, on ouvre la section pour que
     // le débutant les voie tout de suite plutôt que de les cacher.
@@ -270,20 +277,20 @@ function ServiceForm({ onAdd, servicesExistants, servicesActuels, networksDispon
   return (
     <form className="service-form" onSubmit={soumettre}>
       <div className="form-tete">
-        <span className="form-tag">{enEdition ? 'MODIFICATION' : 'NOUVEAU CONTENEUR'}</span>
-        <h2>{enEdition ? `Modifier « ${serviceAEditer.name} »` : 'Ajouter un service'}</h2>
+        <span className="form-tag">{enEdition ? t('sf.modification') : t('sf.nouveauConteneur')}</span>
+        <h2>{enEdition ? `${t('sf.modifierTitre')} « ${serviceAEditer.name} »` : t('section.ajouterService')}</h2>
       </div>
 
       <ImageCatalog onChoisir={choisirImage} />
 
       <label>
         <span className="label-avec-aide">
-          Nom du service
-          <Aide texte="Identifiant du conteneur dans ton projet (ex: web, db). Utilisé aussi comme nom d'hôte : un autre conteneur peut y accéder via ce nom." />
+          {t('sf.nomService')}
+          <Aide texte={t('sf.nomServiceAide')} />
         </span>
         <input
           type="text"
-          placeholder="ex: web, db, redis..."
+          placeholder={t('sf.nomServicePlaceholder')}
           value={service.name}
           onChange={(e) => majChamp('name', e.target.value)}
           required
@@ -292,12 +299,12 @@ function ServiceForm({ onAdd, servicesExistants, servicesActuels, networksDispon
 
       <label>
         <span className="label-avec-aide">
-          Image Docker
-          <Aide texte="Le modèle du conteneur, publié sur Docker Hub. Format : nom:version (ex: nginx:latest = toujours la dernière version stable)." />
+          {t('sf.imageDocker')}
+          <Aide texte={t('sf.imageDockerAide')} />
         </span>
         <input
           type="text"
-          placeholder="ex: nginx:latest, postgres:16"
+          placeholder={t('sf.imageDockerPlaceholder')}
           value={service.image}
           onChange={(e) => majChamp('image', e.target.value)}
           required
@@ -307,24 +314,24 @@ function ServiceForm({ onAdd, servicesExistants, servicesActuels, networksDispon
       <fieldset>
         <legend>
           <span className="label-avec-aide">
-            Ports (hôte → conteneur)
-            <Aide texte="Le port hôte est celui que tu utilises depuis ton navigateur (ex: localhost:8080). Le port conteneur est celui que l'appli écoute à l'intérieur — souvent fixé par l'image, ne le change pas au hasard." />
+            {t('sf.ports')}
+            <Aide texte={t('sf.portsAide')} />
           </span>
         </legend>
         {service.ports.map((p, i) => (
           <div className="ligne-champ" key={i}>
             <input
               type="number"
-              placeholder="Port hôte, ex: 8080"
+              placeholder={t('sf.portHotePlaceholder')}
               value={p.host}
               onChange={(e) => majPort(i, 'host', e.target.value)}
               onBlur={() => corrigerPortSiConflit(i)}
             />
-            {portAjuste === i && <span className="port-ajuste">décalé ✓</span>}
+            {portAjuste === i && <span className="port-ajuste">{t('sf.decale')}</span>}
             <span className="fleche">→</span>
             <input
               type="number"
-              placeholder="Port conteneur, ex: 80"
+              placeholder={t('sf.portConteneurPlaceholder')}
               value={p.container}
               onChange={(e) => majPort(i, 'container', e.target.value)}
             />
@@ -333,7 +340,7 @@ function ServiceForm({ onAdd, servicesExistants, servicesActuels, networksDispon
             )}
           </div>
         ))}
-        <button type="button" className="btn-discret" onClick={ajouterPort}>+ Ajouter un port</button>
+        <button type="button" className="btn-discret" onClick={ajouterPort}>{t('sf.ajouterPort')}</button>
       </fieldset>
 
       <button
@@ -341,7 +348,7 @@ function ServiceForm({ onAdd, servicesExistants, servicesActuels, networksDispon
         className="btn-discret btn-avance"
         onClick={() => setOuvertConfig((o) => !o)}
       >
-        {ouvertConfig ? '▾' : '▸'} Volumes et variables d'environnement
+        {ouvertConfig ? '▾' : '▸'} {t('sf.volumesEtEnv')}
         {!ouvertConfig && (volumesRemplis > 0 || envRemplis > 0) && (
           <span className="badge-compteur">{volumesRemplis + envRemplis}</span>
         )}
@@ -352,15 +359,15 @@ function ServiceForm({ onAdd, servicesExistants, servicesActuels, networksDispon
           <fieldset>
             <legend>
               <span className="label-avec-aide">
-                Volumes
-                <Aide texte="Un volume relie un dossier de ton PC à un dossier du conteneur, pour que les données survivent même si le conteneur est supprimé. Format : ./dossier-local:/dossier-dans-le-conteneur" />
+                {t('sf.volumes')}
+                <Aide texte={t('sf.volumesAide')} />
               </span>
             </legend>
             {service.volumes.map((v, i) => (
               <div className="ligne-champ" key={i}>
                 <input
                   type="text"
-                  placeholder="ex: ./data:/var/lib/mysql"
+                  placeholder={t('sf.volumePlaceholder')}
                   value={v}
                   onChange={(e) => majVolume(i, e.target.value)}
                 />
@@ -369,39 +376,39 @@ function ServiceForm({ onAdd, servicesExistants, servicesActuels, networksDispon
                 )}
               </div>
             ))}
-            <button type="button" className="btn-discret" onClick={ajouterVolume}>+ Ajouter un volume</button>
+            <button type="button" className="btn-discret" onClick={ajouterVolume}>{t('sf.ajouterVolume')}</button>
           </fieldset>
 
           <fieldset>
             <legend>
               <span className="label-avec-aide">
-                Variables d'environnement
-                <Aide texte="Des réglages passés au conteneur au démarrage (mots de passe, options...). Chaque image documente les siennes sur Docker Hub." />
+                {t('sf.variablesEnv')}
+                <Aide texte={t('sf.variablesEnvAide')} />
               </span>
             </legend>
             {service.env.map((e2, i) => (
               <div className="ligne-champ" key={i}>
                 <input
                   type="text"
-                  placeholder="CLE"
+                  placeholder={t('sf.clePlaceholder')}
                   value={e2.key}
                   onChange={(e) => majEnv(i, 'key', e.target.value)}
                 />
                 <span className="fleche">=</span>
                 <input
                   type="text"
-                  placeholder="valeur"
+                  placeholder={t('sf.valeurPlaceholder')}
                   value={e2.value}
                   onChange={(e) => majEnv(i, 'value', e.target.value)}
                 />
                 {estCleApplicative(e2.key) && (
-                  <Aide texte="Cette clé n'est pas un simple mot de passe : c'est une clé de chiffrement propre à l'application (souvent 32 caractères encodés en base64). Le bouton 🎲 génère une valeur aléatoire de bonne longueur pour démarrer, mais vérifie la doc Docker Hub de l'image : certaines applis exigent un format précis (ex: préfixe 'base64:', ou une commande dédiée comme 'php artisan key:generate') et refuseront de démarrer sinon." />
+                  <Aide texte={t('sf.cleAppAide')} />
                 )}
                 {estSecret(e2.key, { inclusions: secretsInclus, exclusions: secretsExclus }) && (
                   <button
                     type="button"
                     className="btn-icone"
-                    title="Générer une valeur aléatoire sécurisée"
+                    title={t('sf.genererSecretTitle')}
                     onClick={() => majEnv(i, 'value', genererMotDePasse())}
                   >
                     🎲
@@ -412,22 +419,34 @@ function ServiceForm({ onAdd, servicesExistants, servicesActuels, networksDispon
                 )}
               </div>
             ))}
-            <button type="button" className="btn-discret" onClick={ajouterEnv}>+ Ajouter une variable</button>
+            <button type="button" className="btn-discret" onClick={ajouterEnv}>{t('sf.ajouterVariable')}</button>
           </fieldset>
         </>
       )}
 
       <button type="button" className="btn-discret btn-avance" onClick={() => setOuvertAvance((o) => !o)}>
-        {ouvertAvance ? '▾' : '▸'} Options avancées (redémarrage, dépendances, réseaux, profils, santé, ressources, sécurité)
+        {ouvertAvance ? '▾' : '▸'} {t('sf.optionsAvancees')}
       </button>
 
       {ouvertAvance && (
         <>
+          <label className="label-avec-aide" style={{ display: 'block' }}>
+            {t('sf.commandePerso')}
+            <Aide texte={t('sf.commandePersoAide')} />
+          </label>
+          <input
+            type="text"
+            placeholder={t('sf.commandePersoPlaceholder')}
+            value={service.command || ''}
+            onChange={(e) => majChamp('command', e.target.value)}
+            style={{ marginBottom: '0.8rem' }}
+          />
+
           <fieldset>
             <legend>
               <span className="label-avec-aide">
-                Redémarrage
-                <Aide texte="Que faire si le conteneur plante ou si la machine redémarre. « Sauf arrêt manuel » est le bon choix par défaut : il repart tout seul sauf si tu l'as arrêté volontairement." />
+                {t('sf.redemarrage')}
+                <Aide texte={t('sf.redemarrageAide')} />
               </span>
             </legend>
             <select value={service.restart} onChange={(e) => majChamp('restart', e.target.value)}>
@@ -437,12 +456,12 @@ function ServiceForm({ onAdd, servicesExistants, servicesActuels, networksDispon
             </select>
 
             <label className="label-avec-aide" style={{ marginTop: '0.6rem', display: 'block' }}>
-              Délai d'arrêt propre (stop_grace_period)
-              <Aide texte="Temps laissé au conteneur pour s'arrêter proprement (terminer ses requêtes en cours, fermer sa connexion à la base...) avant que Docker ne le tue de force. Utile pour les services qui ont besoin de quelques secondes pour fermer proprement. Format : ex. 30s, 1m." />
+              {t('sf.delaiArret')}
+              <Aide texte={t('sf.delaiArretAide')} />
             </label>
             <input
               type="text"
-              placeholder="ex: 30s (par défaut : 10s)"
+              placeholder={t('sf.delaiArretPlaceholder')}
               value={service.stopGracePeriod || ''}
               onChange={(e) => majChamp('stopGracePeriod', e.target.value)}
             />
@@ -451,8 +470,8 @@ function ServiceForm({ onAdd, servicesExistants, servicesActuels, networksDispon
               <>
                 <legend style={{ marginTop: '0.8rem' }}>
                   <span className="label-avec-aide">
-                    Dépend de
-                    <Aide texte="Ce service démarrera après ceux que tu sélectionnes ici (utile si ton appli a besoin que sa base de données soit déjà lancée)." />
+                    {t('sf.dependDe')}
+                    <Aide texte={t('sf.dependDeAide')} />
                   </span>
                 </legend>
                 <div className="chips-dependances">
@@ -475,8 +494,8 @@ function ServiceForm({ onAdd, servicesExistants, servicesActuels, networksDispon
             <fieldset>
               <legend>
                 <span className="label-avec-aide">
-                  Réseaux
-                  <Aide texte="Place ce service sur un ou plusieurs réseaux personnalisés pour l'isoler des autres conteneurs (ex: mettre la base de données seule avec l'appli, sans exposer au reste)." />
+                  {t('sf.reseaux')}
+                  <Aide texte={t('sf.reseauxAide')} />
                 </span>
               </legend>
               <div className="chips-dependances">
@@ -497,8 +516,8 @@ function ServiceForm({ onAdd, servicesExistants, servicesActuels, networksDispon
           <fieldset>
             <legend>
               <span className="label-avec-aide">
-                Profils
-                <Aide texte="Un service avec un profil ne démarre pas avec un simple « docker compose up » — il faut préciser --profile nom. Pratique pour des outils optionnels (debug, seed de données...)." />
+                {t('sf.profils')}
+                <Aide texte={t('sf.profilsAide')} />
               </span>
             </legend>
             <div className="chips-dependances">
@@ -515,8 +534,8 @@ function ServiceForm({ onAdd, servicesExistants, servicesActuels, networksDispon
             </div>
             {service.profiles.length > 0 && (
               <p className="reseaux-aide" style={{ marginTop: '0.5rem', marginBottom: 0 }}>
-                Ce service ne démarrera qu'avec <code>docker compose --profile {service.profiles[0]} up</code>
-                {service.profiles.length > 1 ? ' (ou un des autres profils choisis)' : ''}.
+                {t('sf.profilNeDemarreQue')} <code>docker compose --profile {service.profiles[0]} up</code>
+                {service.profiles.length > 1 ? t('sf.profilAutresChoisis') : ''}.
               </p>
             )}
           </fieldset>
@@ -524,8 +543,8 @@ function ServiceForm({ onAdd, servicesExistants, servicesActuels, networksDispon
           <fieldset>
             <legend>
               <span className="label-avec-aide">
-                Vérification de santé
-                <Aide texte="Docker vérifie régulièrement que le conteneur répond bien, pas juste qu'il est démarré. Utile avec « depends_on » pour attendre qu'une base de données soit vraiment prête." />
+                {t('sf.veriSante')}
+                <Aide texte={t('sf.veriSanteAide')} />
               </span>
             </legend>
             <label className="option-secrets">
@@ -534,13 +553,13 @@ function ServiceForm({ onAdd, servicesExistants, servicesActuels, networksDispon
                 checked={service.healthcheck.enabled}
                 onChange={(e) => majHealthcheck('enabled', e.target.checked)}
               />
-              Activer la vérification de santé du conteneur
+              {t('sf.activerSante')}
             </label>
             {service.healthcheck.enabled && (
               <>
                 <input
                   type="text"
-                  placeholder="ex: curl -f http://localhost/ || exit 1"
+                  placeholder={t('sf.testSantePlaceholder')}
                   value={service.healthcheck.test}
                   onChange={(e) => majHealthcheck('test', e.target.value)}
                   style={{ marginTop: '0.5rem' }}
@@ -548,19 +567,19 @@ function ServiceForm({ onAdd, servicesExistants, servicesActuels, networksDispon
                 <div className="ligne-champ" style={{ marginTop: '0.5rem' }}>
                   <input
                     type="text"
-                    placeholder="Intervalle (30s)"
+                    placeholder={t('sf.intervallePlaceholder')}
                     value={service.healthcheck.interval}
                     onChange={(e) => majHealthcheck('interval', e.target.value)}
                   />
                   <input
                     type="text"
-                    placeholder="Timeout (5s)"
+                    placeholder={t('sf.timeoutPlaceholder')}
                     value={service.healthcheck.timeout}
                     onChange={(e) => majHealthcheck('timeout', e.target.value)}
                   />
                   <input
                     type="number"
-                    placeholder="Essais (3)"
+                    placeholder={t('sf.essaisPlaceholder')}
                     value={service.healthcheck.retries}
                     onChange={(e) => majHealthcheck('retries', e.target.value)}
                   />
@@ -572,20 +591,20 @@ function ServiceForm({ onAdd, servicesExistants, servicesActuels, networksDispon
           <fieldset>
             <legend>
               <span className="label-avec-aide">
-                Limites de ressources
-                <Aide texte="Empêche ce conteneur de consommer toute la RAM/CPU de ta machine. Optionnel, utile si tu fais tourner beaucoup de conteneurs en même temps." />
+                {t('sf.limitesRessources')}
+                <Aide texte={t('sf.limitesRessourcesAide')} />
               </span>
             </legend>
             <div className="ligne-champ">
               <input
                 type="text"
-                placeholder="RAM max, ex: 512m"
+                placeholder={t('sf.ramPlaceholder')}
                 value={service.memLimit}
                 onChange={(e) => majChamp('memLimit', e.target.value)}
               />
               <input
                 type="text"
-                placeholder="CPU max, ex: 0.5"
+                placeholder={t('sf.cpuPlaceholder')}
                 value={service.cpus}
                 onChange={(e) => majChamp('cpus', e.target.value)}
               />
@@ -595,20 +614,20 @@ function ServiceForm({ onAdd, servicesExistants, servicesActuels, networksDispon
           <fieldset>
             <legend>
               <span className="label-avec-aide">
-                Rotation des logs
-                <Aide texte="Sans limite, les logs d'un conteneur peuvent grossir indéfiniment et remplir le disque avec le temps (driver json-file par défaut). Optionnel, recommandé pour un service qui tourne longtemps en production." />
+                {t('sf.rotationLogs')}
+                <Aide texte={t('sf.rotationLogsAide')} />
               </span>
             </legend>
             <div className="ligne-champ">
               <input
                 type="text"
-                placeholder="Taille max par fichier, ex: 10m"
+                placeholder={t('sf.tailleMaxPlaceholder')}
                 value={service.logMaxSize}
                 onChange={(e) => majChamp('logMaxSize', e.target.value)}
               />
               <input
                 type="text"
-                placeholder="Nb de fichiers conservés, ex: 3"
+                placeholder={t('sf.nbFichiersPlaceholder')}
                 value={service.logMaxFile}
                 onChange={(e) => majChamp('logMaxFile', e.target.value)}
               />
@@ -618,8 +637,8 @@ function ServiceForm({ onAdd, servicesExistants, servicesActuels, networksDispon
           <fieldset>
             <legend>
               <span className="label-avec-aide">
-                Reverse proxy (Traefik)
-                <Aide texte="Génère automatiquement les labels Docker lus par Traefik pour router le trafic vers ce service par nom de domaine, avec HTTPS automatique (Let's Encrypt). Suppose qu'un conteneur Traefik tourne déjà sur le même réseau Docker (voir la stack « Traefik » prête à charger)." />
+                {t('sf.reverseProxy')}
+                <Aide texte={t('sf.reverseProxyAide')} />
               </span>
             </legend>
             <label className="option-secrets">
@@ -628,19 +647,19 @@ function ServiceForm({ onAdd, servicesExistants, servicesActuels, networksDispon
                 checked={!!service.traefik?.active}
                 onChange={(e) => majTraefik('active', e.target.checked)}
               />
-              Exposer ce service via Traefik
+              {t('sf.exposerTraefik')}
             </label>
             {service.traefik?.active && (
               <div className="ligne-champ" style={{ marginTop: '0.5rem' }}>
                 <input
                   type="text"
-                  placeholder="Nom de domaine, ex: app.mondomaine.fr"
+                  placeholder={t('sf.domainePlaceholder')}
                   value={service.traefik?.domaine || ''}
                   onChange={(e) => majTraefik('domaine', e.target.value)}
                 />
                 <input
                   type="text"
-                  placeholder="Port interne (auto si vide)"
+                  placeholder={t('sf.portInternePlaceholder')}
                   value={service.traefik?.port || ''}
                   onChange={(e) => majTraefik('port', e.target.value)}
                 />
@@ -651,17 +670,17 @@ function ServiceForm({ onAdd, servicesExistants, servicesActuels, networksDispon
           <fieldset>
             <legend>
               <span className="label-avec-aide">
-                Durcissement du conteneur
-                <Aide texte="Réduit ce que le conteneur peut faire, même s'il est compromis : moins de capacités Linux, pas d'écriture sur le système de fichiers, pas d'élévation de privilèges. Recommandé pour tout service exposé, surtout via Traefik." />
+                {t('sf.durcissement')}
+                <Aide texte={t('sf.durcissementAide')} />
               </span>
             </legend>
             <label className="label-avec-aide" style={{ display: 'block' }}>
-              Utilisateur (UID:GID)
-              <Aide texte="Force le conteneur à tourner avec un utilisateur non-root, même si l'image ne le fait pas par défaut. Réduit fortement l'impact d'une éventuelle faille dans l'application. Exemple : 1000:1000. Laisse vide pour garder le comportement par défaut de l'image." />
+              {t('sf.utilisateur')}
+              <Aide texte={t('sf.utilisateurAide')} />
             </label>
             <input
               type="text"
-              placeholder="ex: 1000:1000 (vide = défaut de l'image)"
+              placeholder={t('sf.utilisateurPlaceholder')}
               value={service.security?.user || ''}
               onChange={(e) => majSecurity('user', e.target.value)}
               style={{ marginBottom: '0.6rem' }}
@@ -672,7 +691,7 @@ function ServiceForm({ onAdd, servicesExistants, servicesActuels, networksDispon
                 checked={!!service.security?.init}
                 onChange={(e) => majSecurity('init', e.target.checked)}
               />
-              Utiliser un init-process (tini) pour nettoyer les processus zombies
+              {t('sf.initProcess')}
             </label>
             <label className="option-secrets">
               <input
@@ -680,7 +699,7 @@ function ServiceForm({ onAdd, servicesExistants, servicesActuels, networksDispon
                 checked={!!service.security?.readOnly}
                 onChange={(e) => majSecurity('readOnly', e.target.checked)}
               />
-              Système de fichiers en lecture seule (read_only)
+              {t('sf.lectureSeule')}
             </label>
             <label className="option-secrets">
               <input
@@ -688,7 +707,7 @@ function ServiceForm({ onAdd, servicesExistants, servicesActuels, networksDispon
                 checked={!!service.security?.noNewPrivileges}
                 onChange={(e) => majSecurity('noNewPrivileges', e.target.checked)}
               />
-              Interdire l'élévation de privilèges (no-new-privileges)
+              {t('sf.noNewPriv')}
             </label>
             <label className="option-secrets">
               <input
@@ -696,12 +715,12 @@ function ServiceForm({ onAdd, servicesExistants, servicesActuels, networksDispon
                 checked={!!service.security?.dropAllCaps}
                 onChange={(e) => majSecurity('dropAllCaps', e.target.checked)}
               />
-              Supprimer toutes les capacités Linux par défaut (cap_drop: ALL)
+              {t('sf.dropCaps')}
             </label>
             {service.security?.dropAllCaps && (
               <input
                 type="text"
-                placeholder="Capacités à rendre (ex: NET_BIND_SERVICE, CHOWN)"
+                placeholder={t('sf.capacitesPlaceholder')}
                 value={service.security?.capAdd || ''}
                 onChange={(e) => majSecurity('capAdd', e.target.value)}
                 style={{ marginTop: '0.5rem' }}
@@ -710,14 +729,14 @@ function ServiceForm({ onAdd, servicesExistants, servicesActuels, networksDispon
             {service.security?.readOnly && (
               <div style={{ marginTop: '0.6rem' }}>
                 <p className="reseaux-aide" style={{ marginBottom: '0.4rem' }}>
-                  Le système de fichiers est en lecture seule : ajoute ici les dossiers où l'appli a quand même besoin d'écrire (cache, fichiers temporaires...). Ils seront montés en mémoire (perdus au redémarrage), sans quoi l'appli risque de planter au démarrage.
+                  {t('sf.lectureSeuleExplication')}
                 </p>
-                {(service.tmpfs || ['']).map((t, i) => (
+                {(service.tmpfs || ['']).map((t2, i) => (
                   <div className="ligne-champ" key={i}>
                     <input
                       type="text"
-                      placeholder="ex: /tmp ou /var/cache/nginx"
-                      value={t}
+                      placeholder={t('sf.tmpfsPlaceholder')}
+                      value={t2}
                       onChange={(e) => majTmpfs(i, e.target.value)}
                     />
                     {(service.tmpfs || ['']).length > 1 && (
@@ -725,7 +744,7 @@ function ServiceForm({ onAdd, servicesExistants, servicesActuels, networksDispon
                     )}
                   </div>
                 ))}
-                <button type="button" className="btn-discret" onClick={ajouterTmpfs}>+ Ajouter un dossier en mémoire</button>
+                <button type="button" className="btn-discret" onClick={ajouterTmpfs}>{t('sf.ajouterDossierMemoire')}</button>
               </div>
             )}
           </fieldset>
@@ -733,15 +752,15 @@ function ServiceForm({ onAdd, servicesExistants, servicesActuels, networksDispon
           <fieldset>
             <legend>
               <span className="label-avec-aide">
-                Hôtes supplémentaires (extra_hosts)
-                <Aide texte="Ajoute des entrées à la résolution DNS interne du conteneur, comme /etc/hosts. Utile pour faire pointer un nom de domaine vers une IP locale (ex: un service qui tourne sur la machine hôte). Format : nom-hote:adresse-ip." />
+                {t('sf.hotesSupp')}
+                <Aide texte={t('sf.hotesSuppAide')} />
               </span>
             </legend>
             {(service.extraHosts || ['']).map((h, i) => (
               <div className="ligne-champ" key={i}>
                 <input
                   type="text"
-                  placeholder="ex: host.docker.internal:172.17.0.1"
+                  placeholder={t('sf.hotePlaceholder')}
                   value={h}
                   onChange={(e) => majExtraHost(i, e.target.value)}
                 />
@@ -750,17 +769,17 @@ function ServiceForm({ onAdd, servicesExistants, servicesActuels, networksDispon
                 )}
               </div>
             ))}
-            <button type="button" className="btn-discret" onClick={ajouterExtraHost}>+ Ajouter un hôte</button>
+            <button type="button" className="btn-discret" onClick={ajouterExtraHost}>{t('sf.ajouterHote')}</button>
           </fieldset>
         </>
       )}
 
       <div className="actions-formulaire">
         <button type="submit" className="btn-principal">
-          {enEdition ? '✓ Enregistrer les modifications' : '+ Ajouter ce conteneur'}
+          {enEdition ? t('sf.enregistrerModifs') : t('sf.ajouterConteneur')}
         </button>
         {enEdition && (
-          <button type="button" className="btn-discret" onClick={onAnnulerEdition}>Annuler</button>
+          <button type="button" className="btn-discret" onClick={onAnnulerEdition}>{t('sf.annuler')}</button>
         )}
       </div>
     </form>

@@ -31,6 +31,48 @@ Résumé de tout ce qui a été ajouté/corrigé, dans l'ordre.
 
 ## Correctifs récents
 
+- **Anglais — ServiceForm traduit intégralement** : tous les labels,
+  placeholders, textes d'aide et boutons du formulaire d'ajout/édition
+  de service (le plus gros composant de l'appli) basculent maintenant
+  en anglais via le bouton 🇬🇧 du hero. Reste à traduire : Preview,
+  ServiceList, StackPresets, et les ~13 autres composants, plus les
+  noms/descriptions des 106 stacks si souhaité — travail en cours.
+- **Anglais (début)** : nouveau système de traduction (`src/core/i18n.js`,
+  contexte React + hook `useLangue()`) et bouton 🇬🇧/🇫🇷 dans le hero.
+  Le hero, les stats, et les 3 onglets principaux (Services/Réseaux/
+  Aperçu) sont déjà traduits. Le reste de l'interface (formulaires,
+  modales, palette de commandes...) et les noms/descriptions des 106
+  stacks restent à traduire — travail en cours, pas encore complet.
+- **3 nouveaux presets sécurité/monitoring** (103 → 106 stacks) :
+  CrowdSec (détection d'intrusion collaborative), Speedtest Tracker
+  (suivi du débit internet), Trivy en mode serveur (scan de
+  vulnérabilités CVE sur des images Docker). Corrigé au passage un
+  doublon CrowdSec mal catégorisé qui traînait dans le catalogue.
+- **Uniformisation boutons/badges** : plusieurs éléments (boutons icône,
+  barres de recherche, onglets, bouton fermer des guides) utilisaient
+  des rayons et épaisseurs de bordure codés en dur au lieu des variables
+  communes — tout référence maintenant les mêmes tokens (`--radius-sm`,
+  bordure 1.5px) pour un rendu cohérent partout.
+- **Nouveau champ « Commande personnalisée » (command)** : les services
+  peuvent maintenant surcharger la commande de démarrage de leur image
+  (utile pour les images qui exigent une sous-commande précise, ex.
+  « serve » ou un worker Sidekiq séparé). Supporté partout : YAML du
+  docker-compose (juste après `image:`), script `docker run` équivalent,
+  manifestes Kubernetes (via `/bin/sh -c`), et relu correctement à
+  l'import d'un compose existant (chaîne ou liste). Champ texte libre
+  dans la section « Avancé » du formulaire, vide par défaut (aucun
+  changement de comportement pour les projets existants).
+- **2 nouveaux presets grâce à ça** : ntfy (notifications push, avec
+  `command: serve`) et Chatwoot (support client & live chat, alternative
+  libre à Intercom/Zendesk — 4 services : rails, worker Sidekiq séparé,
+  PostgreSQL, Redis).
+- **5 nouveaux presets** (96 → 101 stacks) : Cible de sauvegarde Restic
+  (rest-server), Wallabag (lecture différée), draw.io (diagrammes
+  techniques), Kimai (suivi du temps de travail + MySQL), Registre
+  Docker privé avec interface (registry:2 + Joxit UI). Ajoutés aussi au
+  catalogue d'images dans leurs catégories respectives (Stockage &
+  sauvegarde, Auto-hébergement, Productivité & documentation, Outils &
+  DevOps).
 - **Pagination des stacks presets** : `StackPresets` n'affiche plus les 96
   stacks d'un coup à l'arrivée sur le site. Seules 12 sont visibles par
   défaut, avec un bouton « Afficher X stacks de plus » qui en révèle 24

@@ -173,7 +173,7 @@ dockerforge/
   répartition des services par réseau.
 
 **Stacks & import**
-- **96 stacks prêtes à l'emploi**, filtrables par catégorie (Web & CMS,
+- **106 stacks prêtes à l'emploi**, filtrables par catégorie (Web & CMS,
   Données & dev, Réseau & sécurité, Monitoring & maintenance,
   Auto-hébergement perso, Communication & outils) en plus de la recherche
   texte libre :
@@ -322,6 +322,14 @@ Correctifs récents._
   stacks, persisté en `localStorage` (nouveau module `favoris.js`),
   filtre « ★ Favoris » et tri qui fait remonter les favoris en tête de
   liste.
+- **Vague 11 de stacks** (96 → 101) : Restic REST Server (sauvegarde),
+  Wallabag (lecture différée), draw.io (diagrammes), Kimai (suivi du
+  temps + MySQL), Registre Docker privé avec interface.
+- **Champ « Commande personnalisée » (command)** : surcharge la commande
+  de démarrage d'un service, supportée dans les 3 formats d'export
+  (compose, docker run, Kubernetes) et à l'import. A permis d'ajouter
+  **ntfy** (notifications push) et **Chatwoot** (support client & live
+  chat, 4 services dont un worker Sidekiq séparé) — 101 → 103 stacks.
 - **Export SVG du schéma** : ajouté (et corrigé en cours de route — la
   première version avait la fonction `exporterSvg()` et la `ref` définies
   mais jamais reliées au bouton/au `<svg>`, donc inutilisables ; c'est

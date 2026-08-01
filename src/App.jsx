@@ -19,9 +19,11 @@ import Icon from './components/Icon.jsx'
 import SchemaNavire from './components/SchemaNavire.jsx'
 import CommandPalette from './components/CommandPalette.jsx'
 import ShortcutsModal from './components/ShortcutsModal.jsx'
+import { LangueContext, useLangueProvider } from './core/i18n.js'
 
 // App.jsx — composant racine de DockerForge
 function App() {
+  const { langue, definirLangue, t } = useLangueProvider()
   const [etat, setEtat] = useState(chargerProjets)
   const [erreursImport, setErreursImport] = useState([])
   const [schemaOuvert, setSchemaOuvert] = useState(true)
@@ -569,25 +571,23 @@ function App() {
   }, [yaml, services, networks, histoVersion, serviceEnEditionId, guideUtilisationOuvert, guideInstallationOuvert, paletteOuverte, raccourcisOuverts])
 
   return (
+    <LangueContext.Provider value={{ langue, definirLangue, t }}>
     <div className="app">
       <header className="hero">
         <div className="hero-fond" aria-hidden="true" />
         <div className="hero-contenu">
-          <span className="hero-eyebrow">GÉNÉRATEUR DE DOCKER-COMPOSE</span>
+          <span className="hero-eyebrow">{t('hero.eyebrow')}</span>
           <h1 className="hero-titre">
             <Icon icon={siDocker} size={52} couleur="#2496ED" />
             DOCKER<span>FORGE</span>
           </h1>
-          <p className="hero-sous-titre">
-            Ajoute tes services, ajuste la configuration, exporte un
-            <code> docker-compose.yml</code> propre et validé.
-          </p>
+          <p className="hero-sous-titre">{t('hero.sousTitre')}</p>
           <div className="hero-nom-projet">
-            <label htmlFor="nom-projet">Nom du projet (compose)</label>
+            <label htmlFor="nom-projet">{t('hero.nomProjetLabel')}</label>
             <input
               id="nom-projet"
               type="text"
-              placeholder="mon-projet"
+              placeholder={t('hero.nomProjetPlaceholder')}
               value={nomProjet}
               onChange={(e) => setNomProjet(e.target.value)}
             />
@@ -595,15 +595,15 @@ function App() {
           <div className="hero-stats">
             <div className="stat">
               <span className="stat-valeur">{services.length}</span>
-              <span className="stat-label">conteneur{services.length !== 1 ? 's' : ''}</span>
+              <span className="stat-label">{t('hero.statsServices')}</span>
             </div>
             <div className="stat">
               <span className="stat-valeur">{nbPorts}</span>
-              <span className="stat-label">port{nbPorts !== 1 ? 's' : ''} exposé{nbPorts !== 1 ? 's' : ''}</span>
+              <span className="stat-label">{t('hero.statsPorts')}</span>
             </div>
             <div className="stat">
               <span className="stat-valeur">{nbVolumes}</span>
-              <span className="stat-label">volume{nbVolumes !== 1 ? 's' : ''}</span>
+              <span className="stat-label">{t('hero.statsVolumes')}</span>
             </div>
           </div>
 
@@ -638,6 +638,13 @@ function App() {
             </button>
             <button className="btn-discret btn-guide" onClick={basculerTheme}>
               {theme === 'sombre' ? '☀️ Thème clair' : '🌙 Thème sombre'}
+            </button>
+            <button
+              className="btn-discret btn-guide"
+              onClick={() => definirLangue(langue === 'fr' ? 'en' : 'fr')}
+              title={langue === 'fr' ? 'Switch interface to English' : 'Passer l\'interface en français'}
+            >
+              {langue === 'fr' ? '🇬🇧 English' : '🇫🇷 Français'}
             </button>
           </div>
         </div>
@@ -691,19 +698,19 @@ function App() {
           className={`onglet ${ongletActif === 'services' ? 'onglet-actif' : ''}`}
           onClick={() => setOngletActif('services')}
         >
-          🐳 Services {services.length > 0 && <span className="badge-compteur">{services.length}</span>}
+          🐳 {t('onglet.services')} {services.length > 0 && <span className="badge-compteur">{services.length}</span>}
         </button>
         <button
           className={`onglet ${ongletActif === 'reseaux' ? 'onglet-actif' : ''}`}
           onClick={() => setOngletActif('reseaux')}
         >
-          🔗 Réseaux {networks.length > 0 && <span className="badge-compteur">{networks.length}</span>}
+          🔗 {t('onglet.reseaux')} {networks.length > 0 && <span className="badge-compteur">{networks.length}</span>}
         </button>
         <button
           className={`onglet ${ongletActif === 'apercu' ? 'onglet-actif' : ''}`}
           onClick={() => setOngletActif('apercu')}
         >
-          📄 Aperçu
+          📄 {t('onglet.apercu')}
           {erreurs.length > 0 && <span className="badge-compteur badge-erreur">{erreurs.length}</span>}
         </button>
       </nav>
@@ -733,10 +740,10 @@ function App() {
               <div className="section-titre section-titre-avec-action">
                 <div>
                   <span className="section-tag">SERVICES</span>
-                  <h2>Conteneurs ({services.length})</h2>
+                  <h2>{t('section.servicesActuels')} ({services.length})</h2>
                 </div>
                 {services.length > 0 && (
-                  <button className="btn-discret" onClick={reinitialiser}>Tout effacer</button>
+                  <button className="btn-discret" onClick={reinitialiser}>{t('nav.toutEffacer')}</button>
                 )}
               </div>
               <ServiceList
@@ -830,6 +837,7 @@ function App() {
         </div>
       )}
     </div>
+    </LangueContext.Provider>
   )
 }
 

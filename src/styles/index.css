@@ -529,9 +529,9 @@ button:active { transform: scale(0.97); }
 
 .btn-icone {
   padding: 0.25rem 0.45rem;
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   background: var(--panel-2);
-  border: 1px solid var(--line);
+  border: 1.5px solid var(--line);
   line-height: 1;
   color: var(--muted);
 }
@@ -884,8 +884,8 @@ button:active { transform: scale(0.97); }
 }
 .conteneur-actions button {
   background: var(--panel);
-  border: 1px solid var(--line);
-  border-radius: 8px;
+  border: 1.5px solid var(--line);
+  border-radius: var(--radius-sm);
   padding: 0.3rem 0.55rem;
   color: var(--ink-2);
   font-size: 0.8rem;
@@ -1234,7 +1234,7 @@ button:active { transform: scale(0.97); }
   align-items: center;
   gap: 0.45rem;
   position: relative;
-  border-radius: 12px 12px 0 0;
+  border-radius: var(--radius-sm) var(--radius-sm) 0 0;
 }
 .onglet:hover { color: var(--ink); background: var(--panel-2); }
 .onglet-actif {
@@ -1265,7 +1265,7 @@ button:active { transform: scale(0.97); }
   padding: 0.55rem 0.9rem;
   font-size: 0.85rem;
   font-weight: 600;
-  border-radius: 8px 8px 0 0;
+  border-radius: var(--radius-sm) var(--radius-sm) 0 0;
 }
 .apercu-onglet:hover { color: var(--ink); background: var(--panel-2); }
 .apercu-onglet-actif {
@@ -1592,7 +1592,7 @@ button:active { transform: scale(0.97); }
   background: var(--docker);
   border-color: var(--docker);
 }
-.guide-fermer { color: var(--muted); background: var(--panel); border: 1.5px solid var(--line); border-radius: 10px; padding: 0.35rem 0.65rem; }
+.guide-fermer { color: var(--muted); background: var(--panel); border: 1.5px solid var(--line); border-radius: var(--radius-sm); padding: 0.35rem 0.65rem; }
 .guide-fermer:hover { color: var(--danger); border-color: var(--danger); }
 
 .guide-contenu { overflow-y: auto; padding: 1.5rem 1.7rem; }
@@ -1786,7 +1786,7 @@ kbd {
 }
 .pwa-toast-icone {
   width: 40px; height: 40px;
-  border-radius: 12px;
+  border-radius: var(--radius-sm);
   background: linear-gradient(135deg, var(--docker), var(--forge));
   display: flex; align-items: center; justify-content: center;
   color: #fff;
@@ -1852,8 +1852,8 @@ kbd {
   width: 100%;
   max-width: 420px;
   background: var(--panel-2);
-  border: 1px solid var(--line);
-  border-radius: 8px;
+  border: 1.5px solid var(--line);
+  border-radius: var(--radius-sm);
   padding: 0.6rem 0.9rem;
   color: var(--ink);
   font-family: var(--font-body);
@@ -1893,8 +1893,8 @@ kbd {
 .conteneurs-recherche {
   width: 100%;
   background: var(--panel-2);
-  border: 1px solid var(--line);
-  border-radius: 8px;
+  border: 1.5px solid var(--line);
+  border-radius: var(--radius-sm);
   padding: 0.6rem 0.9rem;
   color: var(--ink);
   font-family: var(--font-body);

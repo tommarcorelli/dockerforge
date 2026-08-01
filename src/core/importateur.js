@@ -164,6 +164,16 @@ function normaliserTmpfs(tmpfs) {
   return [String(tmpfs)]
 }
 
+// command peut être une chaîne ("serve") ou une liste de tokens
+// (["bundle", "exec", "sidekiq"]) — on ramène toujours à une chaîne unique,
+// cohérente avec le champ texte libre du formulaire et avec ce que génère
+// buildDockerCompose/buildDockerRunScript.
+function normaliserCommand(command) {
+  if (!command) return ''
+  if (Array.isArray(command)) return command.map(String).join(' ')
+  return String(command)
+}
+
 function normaliserHealthcheck(hc) {
   const vide = { enabled: false, test: '', interval: '30s', timeout: '5s', retries: 3 }
   if (!hc || !hc.test) return vide
@@ -220,6 +230,7 @@ export function importerDockerCompose(texteYaml) {
       id: crypto.randomUUID(),
       name: nom,
       image: def.image,
+      command: normaliserCommand(def.command),
       ports: normaliserPorts(def.ports),
       volumes: def.volumes && def.volumes.length > 0 ? def.volumes.map(String) : [''],
       env: normaliserEnv(def.environment),
